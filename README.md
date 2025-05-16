@@ -19,11 +19,30 @@ A modern, async/sync Python client for the DeepSeek LLM API. Supports completion
 ## Features
 - **Sync & async API**
 - **Text generation & chat completion**
+- **Session-based chat history in web UI**
 - **Automatic retries with exponential backoff**
 - **Type hints throughout**
 - **.env and environment variable config**
 - **100% test coverage with pytest & mocks**
 - **Pre-commit hooks and CI ready**
+
+## Web UI (FastAPI)
+
+A modern, session-based chat interface for DeepSeek, built with FastAPI and Jinja2.
+
+**To run locally:**
+```bash
+uvicorn src.deepseek_wrapper.web:app --reload
+```
+Then open [http://localhost:8000](http://localhost:8000) in your browser.
+
+**Web UI Features:**
+- Chat with DeepSeek LLM (session-based history)
+- Async backend for fast, non-blocking responses
+- Reset conversation button
+- Timestamps, avatars, and chat bubbles
+- Loading indicator while waiting for LLM
+- Error banner for API issues
 
 ## Installation
 
@@ -32,7 +51,7 @@ pip install -r requirements.txt
 pip install -e .  # for local development
 ```
 
-## Usage
+## Usage (Python)
 
 ```python
 from deepseek_wrapper import DeepSeekClient
