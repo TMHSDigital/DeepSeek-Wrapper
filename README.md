@@ -1,7 +1,6 @@
 # DeepSeek Wrapper
 
-[![PyPI - Version](https://img.shields.io/pypi/v/deepseek-wrapper?label=PyPI)](https://pypi.org/project/deepseek-wrapper/)
-[![Tests](https://github.com/TMHSDigital/DeepSeek-Wrapper/actions/workflows/ci.yml/badge.svg)](https://github.com/TMHSDigital/DeepSeek-Wrapper/actions)
+[![Tests](https://github.com/TMHSDigital/DeepSeek-Wrapper/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TMHSDigital/DeepSeek-Wrapper/actions)
 [![Coverage Status](https://img.shields.io/badge/coverage-94%25-brightgreen)](https://github.com/TMHSDigital/DeepSeek-Wrapper)
 [![License](https://img.shields.io/github/license/TMHSDigital/DeepSeek-Wrapper)](LICENSE)
 
