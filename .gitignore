@@ -2,6 +2,7 @@ __pycache__/
 .env
 *.pyc
 .env.*
+!.env.example
 .venv/
 dist/
 build/
