@@ -16,10 +16,37 @@
 
 A modern, async/sync Python client for the DeepSeek LLM API. Supports completions, chat, retries, and robust error handling. Built for local dev, CI, and production.
 
+## Version Progress
+
+Below are screenshots showing the evolution of the DeepSeek Wrapper web UI and features over time:
+
+<p align="center">
+  <strong style="font-size:1.2em;">Pre-release</strong>
+</p>
+<p align="center">
+  <img src="versions/pre-release.png" alt="Pre-release UI" style="max-width: 600px; border-radius: 8px; box-shadow: 0 2px 8px #0002;">
+</p>
+<p align="center" style="font-size: 0.95em; color: #666;">
+  <em>Initial UI and feature set before public release.</em>
+</p>
+
+<!-- Add more screenshots here as you add new versions, e.g.:
+<p align="center">
+  <strong style="font-size:1.2em;">v0.2.0</strong>
+</p>
+<p align="center">
+  <img src="versions/v0.2.0.png" alt="v0.2.0 UI" style="max-width: 600px; border-radius: 8px; box-shadow: 0 2px 8px #0002;">
+</p>
+<p align="center" style="font-size: 0.95em; color: #666;">
+  <em>Added async endpoints and improved chat history.</em>
+</p>
+-->
+
 ## Features
 - **Sync & async API**
 - **Text generation & chat completion**
 - **Session-based chat history in web UI**
+- **Markdown rendering in chat responses**
 - **Automatic retries with exponential backoff**
 - **Type hints throughout**
 - **.env and environment variable config**
@@ -41,6 +68,7 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 - Async backend for fast, non-blocking responses
 - Reset conversation button
 - Timestamps, avatars, and chat bubbles
+- **Markdown rendering in assistant responses**
 - Loading indicator while waiting for LLM
 - Error banner for API issues
 
