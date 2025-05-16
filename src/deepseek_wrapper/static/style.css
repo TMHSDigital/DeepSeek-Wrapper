@@ -1,0 +1,9 @@
+body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 2em; }
+h1 { color: #2b3a67; }
+form { margin-bottom: 0.5em; }
+input[type=text] { padding: 0.5em; border-radius: 4px; border: 1px solid #ccc; }
+button { padding: 0.5em 1em; border-radius: 4px; border: none; background: #2b3a67; color: #fff; cursor: pointer; }
+div { margin-bottom: 0.5em; }
+.chat-history { background: #fff; border-radius: 8px; padding: 1em; box-shadow: 0 2px 8px #0001; min-height: 120px; }
+.user-msg { background: #e3eaff; border-radius: 6px; margin: 0.5em 0; padding: 0.5em 1em; text-align: right; }
+.assistant-msg { background: #f0f0f0; border-radius: 6px; margin: 0.5em 0; padding: 0.5em 1em; text-align: left; } 

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DeepSeek Chat</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>DeepSeek Chat</h1>
+    <form method="post" action="/chat">
+        <input type="text" name="user_message" placeholder="Type your message..." required style="width: 60%;">
+        <button type="submit">Send</button>
+    </form>
+    <form method="post" action="/completions" style="margin-top: 1em;">
+        <input type="text" name="prompt" placeholder="Prompt for completions endpoint..." style="width: 60%;">
+        <button type="submit">Completions</button>
+    </form>
+    <form method="post" action="/reset" style="margin-top: 1em;">
+        <button type="submit">Reset Conversation</button>
+    </form>
+    <div class="chat-history" style="margin-top:2em; max-width: 800px;">
+        {% for msg in messages %}
+            <div class="{{ msg.role }}-msg"><b>{{ msg.role.title() }}:</b> {{ msg.content }}</div>
+        {% endfor %}
+    </div>
+</body>
+</html> 
