@@ -16,3 +16,4 @@ build/
 .vscode/
 *.log 
 deepseek-docs.md
+project_prompt.md
