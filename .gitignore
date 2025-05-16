@@ -1,0 +1,17 @@
+__pycache__/
+.env
+*.pyc
+.env.*
+.venv/
+dist/
+build/
+*.egg-info/
+.cache/
+.coverage
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+.idea/
+.vscode/
+*.log 
+deepseek-docs.md
