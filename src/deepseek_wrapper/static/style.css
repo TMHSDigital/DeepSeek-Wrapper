@@ -1,9 +1,19 @@
-body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 2em; }
-h1 { color: #2b3a67; }
-form { margin-bottom: 0.5em; }
-input[type=text] { padding: 0.5em; border-radius: 4px; border: 1px solid #ccc; }
-button { padding: 0.5em 1em; border-radius: 4px; border: none; background: #2b3a67; color: #fff; cursor: pointer; }
-div { margin-bottom: 0.5em; }
-.chat-history { background: #fff; border-radius: 8px; padding: 1em; box-shadow: 0 2px 8px #0001; min-height: 120px; }
-.user-msg { background: #e3eaff; border-radius: 6px; margin: 0.5em 0; padding: 0.5em 1em; text-align: right; }
-.assistant-msg { background: #f0f0f0; border-radius: 6px; margin: 0.5em 0; padding: 0.5em 1em; text-align: left; } 
+body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+.container { max-width: 700px; margin: 2em auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 16px #0002; padding: 2em; }
+h1 { color: #2b3a67; margin-top: 0; }
+form { margin-bottom: 0.5em; display: flex; gap: 0.5em; }
+#user_message { flex: 1; padding: 0.7em; border-radius: 6px; border: 1px solid #ccc; font-size: 1em; resize: vertical; }
+button { padding: 0.7em 1.2em; border-radius: 6px; border: none; background: #2b3a67; color: #fff; cursor: pointer; font-size: 1em; }
+button.reset-btn { background: #aaa; color: #fff; }
+.chat-history { background: #f4f6fa; border-radius: 8px; padding: 1em; box-shadow: 0 1px 4px #0001; min-height: 180px; max-height: 350px; overflow-y: auto; margin-top: 1.5em; }
+.msg-row { display: flex; align-items: flex-end; margin-bottom: 1em; }
+.avatar { font-size: 1.7em; margin: 0 0.7em 0 0; align-self: flex-end; }
+.user .avatar { order: 2; margin: 0 0 0 0.7em; }
+.user .bubble { margin-left: auto; background: #e3eaff; color: #1a237e; text-align: right; }
+.assistant .bubble { margin-right: auto; background: #f0f0f0; color: #222; text-align: left; }
+.bubble { padding: 0.7em 1.1em; border-radius: 16px; max-width: 80%; box-shadow: 0 1px 4px #0001; position: relative; }
+.role { font-weight: bold; margin-right: 0.5em; }
+.timestamp { font-size: 0.85em; color: #888; margin-left: 0.5em; }
+.error-banner { background: #ffdddd; color: #a00; padding: 0.7em 1em; border-radius: 6px; margin-top: 1em; text-align: center; }
+.loading { text-align: center; color: #2b3a67; margin-top: 1em; font-style: italic; }
+.loading-bubble { font-style: italic; color: #888; background: #e0e0e0; } 

@@ -1,11 +1,11 @@
-from fastapi import FastAPI, Request, Form, Response
+from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from deepseek_wrapper import DeepSeekClient, DeepSeekConfig
-import asyncio
 import os
+from datetime import datetime
 
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET_KEY", "supersecret"))
@@ -14,36 +14,49 @@ app.mount("/static", StaticFiles(directory="src/deepseek_wrapper/static"), name=
 
 client = DeepSeekClient()
 
+def now_str():
+    return datetime.now().strftime("%H:%M:%S")
+
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request):
+async def home(request: Request):
     history = request.session.get("history", [])
-    return templates.TemplateResponse("chat.html", {"request": request, "messages": history})
+    return templates.TemplateResponse("chat.html", {"request": request, "messages": history, "error": None, "loading": False})
 
 @app.post("/chat", response_class=HTMLResponse)
-def chat(request: Request, user_message: str = Form(...)):
+async def chat(request: Request, user_message: str = Form(...)):
     history = request.session.get("history", [])
-    history.append({"role": "user", "content": user_message})
+    history.append({"role": "user", "content": user_message, "timestamp": now_str()})
+    error = None
+    loading = True
     try:
-        response = client.chat_completion(history)
+        response = await client.async_chat_completion(history)
+        loading = False
     except Exception as e:
         response = f"Error: {e}"
-    history.append({"role": "assistant", "content": response})
+        error = str(e)
+        loading = False
+    history.append({"role": "assistant", "content": response, "timestamp": now_str()})
     request.session["history"] = history
-    return templates.TemplateResponse("chat.html", {"request": request, "messages": history})
+    return templates.TemplateResponse("chat.html", {"request": request, "messages": history, "error": error, "loading": loading})
 
 @app.post("/completions", response_class=HTMLResponse)
-def completions(request: Request, prompt: str = Form(...)):
+async def completions(request: Request, prompt: str = Form(...)):
     history = request.session.get("history", [])
+    error = None
+    loading = True
     try:
-        response = client.generate_text(prompt)
+        response = await client.async_generate_text(prompt)
+        loading = False
     except Exception as e:
         response = f"Error: {e}"
-    history.append({"role": "user", "content": prompt})
-    history.append({"role": "assistant", "content": response})
+        error = str(e)
+        loading = False
+    history.append({"role": "user", "content": prompt, "timestamp": now_str()})
+    history.append({"role": "assistant", "content": response, "timestamp": now_str()})
     request.session["history"] = history
-    return templates.TemplateResponse("chat.html", {"request": request, "messages": history})
+    return templates.TemplateResponse("chat.html", {"request": request, "messages": history, "error": error, "loading": loading})
 
 @app.post("/reset", response_class=HTMLResponse)
-def reset(request: Request):
+async def reset(request: Request):
     request.session["history"] = []
     return RedirectResponse("/", status_code=303) 

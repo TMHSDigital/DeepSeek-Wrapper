@@ -4,24 +4,52 @@
     <meta charset="UTF-8">
     <title>DeepSeek Chat</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script>
+    // Auto-scroll chat to bottom
+    window.onload = function() {
+        var chat = document.getElementById('chat-history');
+        if (chat) chat.scrollTop = chat.scrollHeight;
+        document.getElementById('user_message').focus();
+    };
+    // Enter to send, Shift+Enter for newline
+    function handleKey(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            document.getElementById('chat-form').submit();
+        }
+    }
+    </script>
 </head>
 <body>
-    <h1>DeepSeek Chat</h1>
-    <form method="post" action="/chat">
-        <input type="text" name="user_message" placeholder="Type your message..." required style="width: 60%;">
-        <button type="submit">Send</button>
-    </form>
-    <form method="post" action="/completions" style="margin-top: 1em;">
-        <input type="text" name="prompt" placeholder="Prompt for completions endpoint..." style="width: 60%;">
-        <button type="submit">Completions</button>
-    </form>
-    <form method="post" action="/reset" style="margin-top: 1em;">
-        <button type="submit">Reset Conversation</button>
-    </form>
-    <div class="chat-history" style="margin-top:2em; max-width: 800px;">
-        {% for msg in messages %}
-            <div class="{{ msg.role }}-msg"><b>{{ msg.role.title() }}:</b> {{ msg.content }}</div>
-        {% endfor %}
+    <div class="container">
+        <h1>DeepSeek Chat</h1>
+        <form id="chat-form" method="post" action="/chat" autocomplete="off">
+            <textarea id="user_message" name="user_message" placeholder="Type your message..." required rows="2" onkeydown="handleKey(event)"></textarea>
+            <button type="submit">Send</button>
+            <button type="button" onclick="document.getElementById('reset-form').submit();" class="reset-btn">Reset</button>
+        </form>
+        <form id="reset-form" method="post" action="/reset" style="display:none;"></form>
+        <div id="chat-history" class="chat-history">
+            {% for msg in messages %}
+                <div class="msg-row {{ msg.role }}">
+                    <div class="avatar">{% if msg.role == 'user' %}🧑{% else %}🤖{% endif %}</div>
+                    <div class="bubble {{ msg.role }}-msg">
+                        <span class="role">{{ msg.role.title() }}</span>
+                        <span class="timestamp">{{ msg.timestamp }}</span><br>
+                        <span class="content">{{ msg.content }}</span>
+                    </div>
+                </div>
+            {% endfor %}
+            {% if loading %}
+                <div class="msg-row assistant">
+                    <div class="avatar">🤖</div>
+                    <div class="bubble assistant-msg loading-bubble">Assistant is typing...</div>
+                </div>
+            {% endif %}
+        </div>
+        {% if error %}
+        <div class="error-banner">{{ error }}</div>
+        {% endif %}
     </div>
 </body>
 </html> 
