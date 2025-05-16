@@ -49,7 +49,11 @@
                     <div class="bubble {{ msg.role }}-msg">
                         <span class="role">{{ msg.role.title() }}</span>
                         <span class="timestamp">{{ msg.timestamp }}</span><br>
-                        <span class="content">{{ msg.content }}</span>
+                        {% if msg.role == 'assistant' %}
+                            <span class="content" style="display:block;" >{{ msg.content_html|safe }}</span>
+                        {% else %}
+                            <span class="content">{{ msg.content_html }}</span>
+                        {% endif %}
                     </div>
                 </div>
             {% endfor %}

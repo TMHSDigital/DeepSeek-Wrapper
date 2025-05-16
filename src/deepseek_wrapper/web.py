@@ -6,6 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from deepseek_wrapper import DeepSeekClient, DeepSeekConfig
 import os
 from datetime import datetime
+import markdown as md
 
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET_KEY", "supersecret"))
@@ -17,10 +18,23 @@ client = DeepSeekClient()
 def now_str():
     return datetime.now().strftime("%H:%M:%S")
 
+def render_history(history):
+    # Render assistant message content as HTML using markdown
+    rendered = []
+    for msg in history:
+        msg = msg.copy()
+        if msg["role"] == "assistant":
+            msg["content_html"] = md.markdown(msg["content"], extensions=["extra", "sane_lists"])
+        else:
+            msg["content_html"] = msg["content"]
+        rendered.append(msg)
+    return rendered
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     history = request.session.get("history", [])
-    return templates.TemplateResponse("chat.html", {"request": request, "messages": history, "error": None, "loading": False})
+    rendered = render_history(history)
+    return templates.TemplateResponse("chat.html", {"request": request, "messages": rendered, "error": None, "loading": False})
 
 @app.post("/chat", response_class=HTMLResponse)
 async def chat(request: Request, user_message: str = Form(...)):
@@ -37,7 +51,8 @@ async def chat(request: Request, user_message: str = Form(...)):
         loading = False
     history.append({"role": "assistant", "content": response, "timestamp": now_str()})
     request.session["history"] = history
-    return templates.TemplateResponse("chat.html", {"request": request, "messages": history, "error": error, "loading": loading})
+    rendered = render_history(history)
+    return templates.TemplateResponse("chat.html", {"request": request, "messages": rendered, "error": error, "loading": loading})
 
 @app.post("/completions", response_class=HTMLResponse)
 async def completions(request: Request, prompt: str = Form(...)):
@@ -54,7 +69,8 @@ async def completions(request: Request, prompt: str = Form(...)):
     history.append({"role": "user", "content": prompt, "timestamp": now_str()})
     history.append({"role": "assistant", "content": response, "timestamp": now_str()})
     request.session["history"] = history
-    return templates.TemplateResponse("chat.html", {"request": request, "messages": history, "error": error, "loading": loading})
+    rendered = render_history(history)
+    return templates.TemplateResponse("chat.html", {"request": request, "messages": rendered, "error": error, "loading": loading})
 
 @app.post("/reset", response_class=HTMLResponse)
 async def reset(request: Request):
