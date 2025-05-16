@@ -5,27 +5,40 @@
     <title>DeepSeek Chat</title>
     <link rel="stylesheet" href="/static/style.css">
     <script>
-    // Auto-scroll chat to bottom
-    window.onload = function() {
+    function scrollChat() {
         var chat = document.getElementById('chat-history');
         if (chat) chat.scrollTop = chat.scrollHeight;
-        document.getElementById('user_message').focus();
+    }
+    function focusInput() {
+        var input = document.getElementById('user_message');
+        if (input) input.focus();
+    }
+    window.onload = function() {
+        scrollChat();
+        focusInput();
     };
-    // Enter to send, Shift+Enter for newline
     function handleKey(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            document.getElementById('chat-form').submit();
+            sendChat();
         }
+    }
+    function sendChat() {
+        var btn = document.getElementById('send-btn');
+        var form = document.getElementById('chat-form');
+        var input = document.getElementById('user_message');
+        if (btn) btn.disabled = true;
+        form.submit();
+        setTimeout(function() { if (input) input.value = ''; }, 100);
     }
     </script>
 </head>
 <body>
     <div class="container">
         <h1>DeepSeek Chat</h1>
-        <form id="chat-form" method="post" action="/chat" autocomplete="off">
-            <textarea id="user_message" name="user_message" placeholder="Type your message..." required rows="2" onkeydown="handleKey(event)"></textarea>
-            <button type="submit">Send</button>
+        <form id="chat-form" method="post" action="/chat" autocomplete="off" onsubmit="sendChat(); return false;">
+            <textarea id="user_message" name="user_message" placeholder="Type your message... (Enter to send, Shift+Enter for newline)" required rows="2" onkeydown="handleKey(event)"></textarea>
+            <button id="send-btn" type="submit" {% if loading %}disabled{% endif %}>Send</button>
             <button type="button" onclick="document.getElementById('reset-form').submit();" class="reset-btn">Reset</button>
         </form>
         <form id="reset-form" method="post" action="/reset" style="display:none;"></form>
