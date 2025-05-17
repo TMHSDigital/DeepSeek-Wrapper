@@ -96,6 +96,16 @@ Below are screenshots showing the evolution of the DeepSeek Wrapper web UI and f
 </p>
 -->
 
+<p align="center">
+  <strong style="font-size:1.2em;">Tool Status & Caching Panel</strong>
+</p>
+<p align="center">
+  <img src="docs/images/tool-status-panel.png" alt="Tool status and caching panel" style="max-width: 600px; border-radius: 8px; box-shadow: 0 2px 8px #0002;">
+</p>
+<p align="center" style="font-size: 0.95em; color: #666;">
+  <em>Enhanced tool status and caching panel: see per-tool status, cache stats, and manage tool caches directly from the UI.</em>
+</p>
+
 ## Features
 
 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0;">
@@ -106,6 +116,7 @@ Below are screenshots showing the evolution of the DeepSeek Wrapper web UI and f
         <li><b>Tool integration framework</b></li>
         <li><b>Built-in tools (Weather, Calculator)</b></li>
         <li><b>Custom tool creation system</b></li>
+        <li><b>Tool status dashboard: visualize tool health, API key status, and cache performance in real time</b></li>
       </ul>
     </div>
     <div style="flex: 1; min-width: 250px; border-left: 4px solid #2EC4B6; padding: 10px; background: #F0FFFC; margin: 5px 0;">
