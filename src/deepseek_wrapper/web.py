@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Request, Form, UploadFile, File
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -15,15 +15,34 @@ app.mount("/static", StaticFiles(directory="src/deepseek_wrapper/static"), name=
 
 client = DeepSeekClient()
 
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), '../../uploads')
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
 def now_str():
     return datetime.now().strftime("%H:%M:%S")
+
+def is_image(filename):
+    return filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'))
 
 def render_history(history):
     # Render assistant message content as HTML using markdown
     rendered = []
     for msg in history:
         msg = msg.copy()
-        if msg["role"] == "assistant":
+        # Ensure all messages have a content field (required by DeepSeek API)
+        if "content" not in msg:
+            msg["content"] = ""
+            
+        if msg.get("file"):
+            # File upload message
+            fname = msg["file"]["filename"]
+            ctype = msg["file"]["content_type"]
+            if is_image(fname):
+                msg["content_html"] = f'<img src="/uploads/{fname}" alt="{fname}" style="max-width:200px;max-height:120px;" />'
+            else:
+                msg["content_html"] = f'<a href="/uploads/{fname}" download>{fname}</a> <span style="font-size:0.9em;color:#888">({ctype})</span>'
+        elif msg["role"] == "assistant":
             msg["content_html"] = md.markdown(msg["content"], extensions=["extra", "sane_lists"])
         else:
             msg["content_html"] = msg["content"]
@@ -75,4 +94,21 @@ async def completions(request: Request, prompt: str = Form(...)):
 @app.post("/reset", response_class=HTMLResponse)
 async def reset(request: Request):
     request.session["history"] = []
-    return RedirectResponse("/", status_code=303) 
+    return RedirectResponse("/", status_code=303)
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...), request: Request = None):
+    file_location = os.path.join(UPLOAD_DIR, file.filename)
+    with open(file_location, "wb") as f:
+        f.write(await file.read())
+    # Add file message to chat history if session is available
+    if request is not None:
+        history = request.session.get("history", [])
+        history.append({
+            "role": "user",
+            "content": "",  # Add empty content field for API compatibility
+            "file": {"filename": file.filename, "content_type": file.content_type},
+            "timestamp": now_str()
+        })
+        request.session["history"] = history
+    return JSONResponse({"filename": file.filename, "content_type": file.content_type}) 

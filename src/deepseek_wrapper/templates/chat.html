@@ -27,7 +27,28 @@
         var btn = document.getElementById('send-btn');
         var form = document.getElementById('chat-form');
         var input = document.getElementById('user_message');
+        var sendingStatus = document.getElementById('sending-status');
+        
         if (btn) btn.disabled = true;
+        if (sendingStatus) sendingStatus.style.display = 'block';
+        
+        // Add the user message to the chat immediately
+        var chatHistory = document.getElementById('chat-history');
+        var userMsg = document.createElement('div');
+        userMsg.className = 'msg-row user';
+        userMsg.innerHTML = `
+            <div class="avatar">
+                <span class="avatar-letter">U</span>
+            </div>
+            <div class="bubble user-msg">
+                <span class="role">User</span>
+                <span class="timestamp">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}</span><br>
+                <span class="content" style="display:block;">${input.value}</span>
+            </div>
+        `;
+        chatHistory.appendChild(userMsg);
+        scrollChat();
+        
         form.submit();
         setTimeout(function() { if (input) input.value = ''; }, 100);
     }
@@ -42,31 +63,143 @@
             <button type="button" onclick="document.getElementById('reset-form').submit();" class="reset-btn">Reset</button>
         </form>
         <form id="reset-form" method="post" action="/reset" style="display:none;"></form>
+        <form id="upload-form" enctype="multipart/form-data" style="margin-top:10px;">
+            <input type="file" id="file-input" name="file" accept="image/*,.pdf,.txt,.doc,.docx" />
+            <button id="upload-btn" type="submit">Upload File</button>
+            <progress id="upload-progress" value="0" max="100" style="display:none;width:120px;"></progress>
+            <span id="upload-status" style="margin-left:10px;"></span>
+            <div id="image-preview" style="margin-top:10px;"></div>
+        </form>
         <div id="chat-history" class="chat-history">
             {% for msg in messages %}
                 <div class="msg-row {{ msg.role }}">
-                    <div class="avatar">{% if msg.role == 'user' %}🧑{% else %}🤖{% endif %}</div>
+                    <div class="avatar">
+                        <span class="avatar-letter">{% if msg.role == 'user' %}U{% else %}A{% endif %}</span>
+                    </div>
                     <div class="bubble {{ msg.role }}-msg">
                         <span class="role">{{ msg.role.title() }}</span>
                         <span class="timestamp">{{ msg.timestamp }}</span><br>
-                        {% if msg.role == 'assistant' %}
-                            <span class="content" style="display:block;" >{{ msg.content_html|safe }}</span>
-                        {% else %}
-                            <span class="content">{{ msg.content_html }}</span>
-                        {% endif %}
+                        <span class="content" style="display:block;">{{ msg.content_html|safe }}</span>
                     </div>
                 </div>
             {% endfor %}
             {% if loading %}
                 <div class="msg-row assistant">
-                    <div class="avatar">🤖</div>
-                    <div class="bubble assistant-msg loading-bubble">Assistant is typing...</div>
+                    <div class="avatar">
+                        <span class="avatar-letter">A</span>
+                    </div>
+                    <div class="bubble assistant-msg loading-bubble">
+                        <div class="typing-indicator">
+                            <span class="typing-dot"></span>
+                            <span class="typing-dot"></span>
+                            <span class="typing-dot"></span>
+                        </div>
+                    </div>
                 </div>
             {% endif %}
+            <div id="sending-status" class="sending-indicator" style="display:none;"></div>
         </div>
         {% if error %}
         <div class="error-banner">{{ error }}</div>
         {% endif %}
     </div>
+    <script>
+    const uploadForm = document.getElementById('upload-form');
+    const uploadBtn = document.getElementById('upload-btn');
+    const uploadProgress = document.getElementById('upload-progress');
+    const uploadStatus = document.getElementById('upload-status');
+    const imagePreview = document.getElementById('image-preview');
+    uploadForm.onsubmit = async function(e) {
+        e.preventDefault();
+        const input = document.getElementById('file-input');
+        if (!input.files.length) { uploadStatus.textContent = 'No file selected'; return; }
+        const file = input.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+        uploadBtn.disabled = true;
+        uploadStatus.textContent = 'Uploading...';
+        uploadProgress.style.display = 'inline-block';
+        uploadProgress.value = 0;
+        imagePreview.innerHTML = '';
+        // Use XMLHttpRequest for progress
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/upload', true);
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                uploadProgress.value = (e.loaded / e.total) * 100;
+            }
+        };
+        xhr.onload = function() {
+            uploadBtn.disabled = false;
+            uploadProgress.style.display = 'none';
+            if (xhr.status === 200) {
+                const data = JSON.parse(xhr.responseText);
+                uploadStatus.textContent = 'Uploaded: ' + data.filename;
+                if (data.content_type.startsWith('image/')) {
+                    const url = '/uploads/' + data.filename;
+                    imagePreview.innerHTML = `<img src="${url}" alt="${data.filename}" style="max-width:200px;max-height:120px;" />`;
+                }
+            } else {
+                uploadStatus.textContent = 'Upload failed';
+            }
+            input.value = '';
+        };
+        xhr.onerror = function() {
+            uploadBtn.disabled = false;
+            uploadProgress.style.display = 'none';
+            uploadStatus.textContent = 'Upload failed';
+        };
+        xhr.send(formData);
+    };
+    // Image paste support
+    document.getElementById('user_message').addEventListener('paste', async function(e) {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                const formData = new FormData();
+                formData.append('file', file);
+                uploadBtn.disabled = true;
+                uploadStatus.textContent = 'Uploading pasted image...';
+                uploadProgress.style.display = 'inline-block';
+                uploadProgress.value = 0;
+                imagePreview.innerHTML = '';
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/upload', true);
+                xhr.upload.onprogress = function(e) {
+                    if (e.lengthComputable) {
+                        uploadProgress.value = (e.loaded / e.total) * 100;
+                    }
+                };
+                xhr.onload = function() {
+                    uploadBtn.disabled = false;
+                    uploadProgress.style.display = 'none';
+                    if (xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText);
+                        uploadStatus.textContent = 'Image pasted and uploaded: ' + data.filename;
+                        if (data.content_type.startsWith('image/')) {
+                            const url = '/uploads/' + data.filename;
+                            imagePreview.innerHTML = `<img src="${url}" alt="${data.filename}" style="max-width:200px;max-height:120px;" />`;
+                        }
+                    } else {
+                        uploadStatus.textContent = 'Upload failed';
+                    }
+                };
+                xhr.onerror = function() {
+                    uploadBtn.disabled = false;
+                    uploadProgress.style.display = 'none';
+                    uploadStatus.textContent = 'Upload failed';
+                };
+                xhr.send(formData);
+                e.preventDefault();
+            }
+        }
+    });
+    // Reset the sending indicator on page load (response received)
+    window.addEventListener('DOMContentLoaded', function() {
+        var sendingStatus = document.getElementById('sending-status');
+        if (sendingStatus) sendingStatus.style.display = 'none';
+    });
+    </script>
 </body>
 </html> 
