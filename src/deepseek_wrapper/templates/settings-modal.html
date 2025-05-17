@@ -1,0 +1,184 @@
+<!-- Settings Modal HTML -->
+<div class="modal-backdrop" id="settings-backdrop" onclick="window.closeSettingsModal()"></div>
+<div class="modal" id="settings-modal">
+    <div class="modal-header">
+        <h2>Chat Settings</h2>
+    </div>
+    
+    <div class="modal-tabs">
+        <button class="modal-tab-btn active" data-tab="general">General</button>
+        <button class="modal-tab-btn" data-tab="tools">Tools</button>
+    </div>
+    
+    <div class="modal-content">
+        <!-- General Tab -->
+        <div class="modal-tab-content active" id="general-tab" tabindex="0">
+            <div class="form-group">
+                <label for="settings-username">Your Name</label>
+                <input id="settings-username" maxlength="32" placeholder="Enter your name" />
+            </div>
+            
+            <div class="form-group">
+                <label for="settings-avatar">Avatar (letter or emoji)</label>
+                <input id="settings-avatar" maxlength="2" placeholder="Letter or emoji for avatar" />
+            </div>
+            
+            <div class="form-group">
+                <label for="settings-system-prompt">System Prompt</label>
+                <textarea id="settings-system-prompt" placeholder="Enter system prompt for the AI assistant"></textarea>
+            </div>
+        </div>
+        
+        <!-- Tools Tab -->
+        <div class="modal-tab-content" id="tools-tab" tabindex="0">
+            <div class="tool-controls">
+                <div id="tool-status-summary">
+                    <span id="active-tools-count">Checking tools status...</span>
+                </div>
+                <div class="tool-control-buttons">
+                    <button id="refresh-tool-status" class="secondary-button" title="Refresh tool status">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path></svg>
+                        Refresh
+                    </button>
+                    <button id="clear-tool-caches" class="cache-clear-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        Clear Tool Caches
+                    </button>
+                </div>
+            </div>
+            
+            <div class="tool-status">
+                <div class="tool-status-header">
+                    <h3>Tool Status</h3>
+                </div>
+                <div id="tool-status-container" class="tool-status-data">
+                    <div class="tool-status-loading">
+                        <div class="tool-status-spinner"></div>
+                        <span>Loading tool information...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tool-list">
+                <!-- Web Search Tool -->
+                <div class="tool-item" id="tool-websearch">
+                    <div class="tool-header">
+                        <div class="tool-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        </div>
+                        <div class="tool-info">
+                            <div class="tool-name">Web Search</div>
+                            <div class="tool-description">Search the web for real-time information</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="tool-websearch-toggle" class="tool-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="tool-body">
+                        <div class="form-group">
+                            <label for="websearch-api-key">API Key</label>
+                            <input type="password" id="websearch-api-key" placeholder="Enter your web search API key" />
+                            <small>This will be saved in your .env file</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Weather Tool -->
+                <div class="tool-item" id="tool-weather">
+                    <div class="tool-header">
+                        <div class="tool-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>
+                        </div>
+                        <div class="tool-info">
+                            <div class="tool-name">Weather</div>
+                            <div class="tool-description">Get weather information</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="tool-weather-toggle" class="tool-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="tool-body">
+                        <div class="form-group">
+                            <label for="weather-api-key">API Key</label>
+                            <input type="password" id="weather-api-key" placeholder="Enter your weather API key" />
+                            <small>This will be saved in your .env file</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Email Tool -->
+                <div class="tool-item" id="tool-email">
+                    <div class="tool-header">
+                        <div class="tool-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        </div>
+                        <div class="tool-info">
+                            <div class="tool-name">Email</div>
+                            <div class="tool-description">Compose and send emails</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="tool-email-toggle" class="tool-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="tool-body">
+                        <div class="form-group">
+                            <label for="email-smtp-server">SMTP Server</label>
+                            <input type="text" id="email-smtp-server" placeholder="smtp.example.com" />
+                        </div>
+                        <div class="form-group">
+                            <label for="email-username">SMTP Username</label>
+                            <input type="text" id="email-username" placeholder="Your email" />
+                        </div>
+                        <div class="form-group">
+                            <label for="email-password">SMTP Password</label>
+                            <input type="password" id="email-password" placeholder="Your password" />
+                            <small>This will be saved in your .env file</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Calculator Tool -->
+                <div class="tool-item" id="tool-calculator">
+                    <div class="tool-header">
+                        <div class="tool-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><line x1="8" y1="18" x2="12" y2="18"></line><line x1="8" y1="14" x2="12" y2="14"></line><line x1="8" y1="10" x2="16" y2="10"></line></svg>
+                        </div>
+                        <div class="tool-info">
+                            <div class="tool-name">Calculator</div>
+                            <div class="tool-description">Perform calculations</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="tool-calculator-toggle" class="tool-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Date & Time Tool -->
+                <div class="tool-item" id="tool-datetime">
+                    <div class="tool-header">
+                        <div class="tool-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        </div>
+                        <div class="tool-info">
+                            <div class="tool-name">Date & Time</div>
+                            <div class="tool-description">Get current date and time information</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="tool-date-toggle" class="tool-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <button onclick="window.closeSettingsModal()">Cancel</button>
+        <button onclick="window.saveSettingsModal()">Save</button>
+    </div>
+</div> 

@@ -69,6 +69,32 @@ class DeepSeekClient:
         """
         return self._tool_registry.list_tools()
     
+    def clear_tool_caches(self) -> None:
+        """Clear the caches for all registered tools.
+        
+        This is useful when you want to ensure fresh results from tool calls.
+        """
+        self._tool_registry.clear_all_caches()
+        logger.info("Cleared all tool caches")
+    
+    def clear_tool_cache(self, tool_name: str) -> bool:
+        """Clear the cache for a specific tool.
+        
+        Args:
+            tool_name: The name of the tool whose cache to clear
+            
+        Returns:
+            True if the tool was found and cache cleared, False otherwise
+        """
+        tool = self._tool_registry.get_tool(tool_name)
+        if tool:
+            tool.clear_cache()
+            logger.info(f"Cleared cache for tool: {tool_name}")
+            return True
+        else:
+            logger.warning(f"Tool not found: {tool_name}")
+            return False
+    
     def _get_tools_as_functions(self) -> List[Dict[str, Any]]:
         """Get registered tools as DeepSeek function schemas.
         

@@ -13,6 +13,7 @@ import asyncio
 import traceback
 import logging
 import io
+from typing import Optional
 try:
     import docx
 except ImportError:
@@ -124,11 +125,11 @@ async def save_api_keys(request: Request):
                 os.environ[key] = value
                 
             # Register tools based on new API keys
-            if "WEBSEARCH_API_KEY" in api_keys and api_keys["WEBSEARCH_API_KEY"]:
+            if "SEARCH_API_KEY" in api_keys and api_keys["SEARCH_API_KEY"]:
                 from deepseek_wrapper.tools import WebSearchTool
                 client.register_tool(WebSearchTool())
                 
-            if "WEATHER_API_KEY" in api_keys and api_keys["WEATHER_API_KEY"]:
+            if "OPENWEATHERMAP_API_KEY" in api_keys and api_keys["OPENWEATHERMAP_API_KEY"]:
                 from deepseek_wrapper.tools import WeatherTool
                 client.register_tool(WeatherTool())
                 
@@ -148,6 +149,11 @@ async def save_api_keys(request: Request):
             {"success": False, "error": str(e)}, 
             status_code=500
         )
+
+# Create an alias endpoint for compatibility
+@app.post("/api/save-api-keys")
+async def save_api_keys_compat(request: Request):
+    return await save_api_keys(request)
 
 def now_str():
     return datetime.now().strftime("%H:%M:%S")
@@ -411,4 +417,187 @@ async def chat_stream(request: Request, user_message: str = None, system_prompt:
         return StreamingResponse(event_generator(), media_type="text/event-stream")
     except Exception as e:
         print(f"ERROR: chat_stream - Outer exception: {str(e)}\nTraceback: {traceback.format_exc()}")
-        return JSONResponse({"error": str(e)}, status_code=500) 
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/api/key-status")
+async def get_api_key_status():
+    """Check which API keys are set in the environment variables."""
+    status = {
+        # Just check if keys exist, don't return the actual values
+        "SEARCH_API_KEY": bool(os.getenv("SEARCH_API_KEY")),
+        "OPENWEATHERMAP_API_KEY": bool(os.getenv("OPENWEATHERMAP_API_KEY")),
+        "EMAIL_SMTP_SERVER": os.getenv("EMAIL_SMTP_SERVER", ""),
+        "EMAIL_USERNAME": os.getenv("EMAIL_USERNAME", ""),
+        "EMAIL_PASSWORD": bool(os.getenv("EMAIL_PASSWORD")),
+        "WOLFRAM_ALPHA_APP_ID": bool(os.getenv("WOLFRAM_ALPHA_APP_ID"))
+    }
+    return JSONResponse(status)
+
+@app.get("/api/tool-status")
+async def get_tool_status():
+    """Get information about available tools and their status.
+    
+    Returns:
+        JSON response with tool information including:
+        - Available tools
+        - For each tool: cache size, last used, etc.
+    """
+    if not client:
+        return JSONResponse({"success": False, "error": "DeepSeek client not initialized"}, status_code=500)
+    
+    try:
+        # Get detailed status for each tool using the new get_status method
+        tool_info = client._tool_registry.get_tools_status()
+        
+        # Add additional information that might be useful for the UI
+        for tool_status in tool_info:
+            # Format last_used as relative time (e.g. "5 minutes ago")
+            if "last_used_seconds_ago" in tool_status:
+                seconds_ago = tool_status["last_used_seconds_ago"]
+                if seconds_ago < 60:
+                    tool_status["last_used_relative"] = f"{seconds_ago} seconds ago"
+                elif seconds_ago < 3600:
+                    tool_status["last_used_relative"] = f"{seconds_ago // 60} minutes ago"
+                elif seconds_ago < 86400:
+                    tool_status["last_used_relative"] = f"{seconds_ago // 3600} hours ago"
+                else:
+                    tool_status["last_used_relative"] = f"{seconds_ago // 86400} days ago"
+            
+            # Add a summary status field for UI display
+            if "has_valid_credentials" in tool_status and tool_status["has_valid_credentials"]:
+                tool_status["status"] = "ready"
+            elif "api_key_valid" in tool_status and tool_status["api_key_valid"]:
+                tool_status["status"] = "ready"
+            elif "has_api_key" in tool_status and tool_status["has_api_key"]:
+                tool_status["status"] = "error"
+            elif tool_status["name"] in ["DateTimeTool", "CalculatorTool"]:
+                # Tools that don't need API keys
+                tool_status["status"] = "ready"
+            else:
+                tool_status["status"] = "not_configured"
+        
+        # Categorize tools by status
+        ready_tools = [t for t in tool_info if t.get("status") == "ready"]
+        error_tools = [t for t in tool_info if t.get("status") == "error"]
+        not_configured_tools = [t for t in tool_info if t.get("status") == "not_configured"]
+        
+        # Calculate cache statistics across all tools
+        total_cache_entries = sum(tool.get("cache_size", 0) for tool in tool_info)
+        total_cache_hits = sum(tool.get("cache_stats", {}).get("hits", 0) for tool in tool_info)
+        total_cache_misses = sum(tool.get("cache_stats", {}).get("misses", 0) for tool in tool_info)
+        
+        # Calculate hit ratio if there are any cache accesses
+        cache_hit_ratio = 0
+        if total_cache_hits + total_cache_misses > 0:
+            cache_hit_ratio = total_cache_hits / (total_cache_hits + total_cache_misses)
+        
+        return JSONResponse({
+            "success": True,
+            "tools": tool_info,
+            "total_tools": len(tool_info),
+            "summary": {
+                "ready": len(ready_tools),
+                "error": len(error_tools),
+                "not_configured": len(not_configured_tools)
+            },
+            "cache_stats": {
+                "total_entries": total_cache_entries,
+                "total_hits": total_cache_hits,
+                "total_misses": total_cache_misses,
+                "hit_ratio": cache_hit_ratio
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error getting tool status: {str(e)}", exc_info=True)
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.post("/api/clear-caches")
+async def clear_tool_caches(request: Request, tool_name: Optional[str] = None):
+    """Clear caches for tools to ensure fresh results.
+    
+    Args:
+        tool_name: Optional specific tool name to clear cache for.
+                  If not provided, all tool caches will be cleared.
+    
+    Returns:
+        JSON response indicating success and which tools were affected
+    """
+    if not client:
+        return JSONResponse({"success": False, "error": "DeepSeek client not initialized"}, status_code=500)
+    
+    try:
+        if tool_name:
+            # Clear cache for a specific tool
+            success = client.clear_tool_cache(tool_name)
+            if success:
+                return JSONResponse({
+                    "success": True, 
+                    "message": f"Cache cleared for tool: {tool_name}"
+                })
+            else:
+                return JSONResponse({
+                    "success": False, 
+                    "error": f"Tool not found: {tool_name}",
+                    "available_tools": client.list_tools()
+                }, status_code=404)
+        else:
+            # Clear all caches
+            client.clear_tool_caches()
+            return JSONResponse({
+                "success": True,
+                "message": "All tool caches cleared",
+                "tools_affected": client.list_tools()
+            })
+    except Exception as e:
+        logger.error(f"Error clearing tool caches: {str(e)}", exc_info=True)
+        return JSONResponse({
+            "success": False,
+            "error": str(e)
+        }, status_code=500)
+
+@app.get("/api/test-weather")
+async def test_weather():
+    """Test endpoint for the weather tool."""
+    try:
+        # Check if the weather tool is registered
+        from deepseek_wrapper.tools import WeatherTool
+        
+        # Check OpenWeatherMap API key
+        api_key = os.getenv("OPENWEATHERMAP_API_KEY")
+        if not api_key:
+            return JSONResponse({
+                "success": False, 
+                "error": "No OpenWeatherMap API key configured", 
+                "env_vars": {k: bool(v) for k, v in os.environ.items() if "API" in k}
+            })
+        
+        # Create and test the weather tool
+        weather_tool = WeatherTool()
+        result = weather_tool.run(location="New York", forecast_days=1)
+        
+        return JSONResponse({
+            "success": True,
+            "result": result,
+            "api_key_found": bool(api_key),
+            "api_key_masked": api_key[:4] + "****" + api_key[-4:] if api_key and len(api_key) > 8 else None
+        })
+    except Exception as e:
+        logger.error(f"Error testing weather tool: {str(e)}", exc_info=True)
+        return JSONResponse({
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }, status_code=500)
+
+@app.get("/test-weather")
+async def simple_test_weather():
+    """Simple test endpoint for the weather tool."""
+    api_key = os.getenv("OPENWEATHERMAP_API_KEY")
+    return JSONResponse({
+        "api_key_exists": bool(api_key),
+        "api_key_masked": api_key[:4] + "****" + api_key[-4:] if api_key and len(api_key) > 8 else None,
+        "env_keys": {k: "exists" for k in os.environ.keys() if "API" in k or "KEY" in k}
+    }) 

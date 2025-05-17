@@ -1,0 +1,808 @@
+/* Settings Modal Styles */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    display: none;
+}
+
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-main);
+    color: var(--text-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    z-index: 1001;
+    min-width: 360px;
+    max-width: 600px;
+    width: 90%;
+    height: 85vh;
+    max-height: 650px;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.modal-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-main);
+}
+
+.modal-tab-btn {
+    background: transparent;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-bottom: -1px;
+}
+
+.modal-tab-btn:hover {
+    color: var(--primary);
+}
+
+.modal-tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.modal-content {
+    position: relative;
+    height: calc(100% - 155px); /* Header + tabs + footer */
+    overflow: hidden;
+}
+
+.modal-tab-content {
+    display: none;
+    height: 100%;
+    overflow-y: auto;
+    padding: 1.25rem;
+}
+
+.modal-tab-content.active {
+    display: block;
+}
+
+.modal-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    background-color: var(--bg-main);
+}
+
+.modal-footer button {
+    padding: 0.5rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
+}
+
+.modal-footer button:first-child {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.modal-footer button:first-child:hover {
+    background-color: var(--bg-content-area);
+    color: var(--text-primary);
+}
+
+.modal-footer button:last-child {
+    background-color: var(--primary);
+    border: 1px solid var(--primary);
+    color: var(--text-on-primary);
+}
+
+.modal-footer button:last-child:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+/* General Tab Styles */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.375rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.625rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+}
+
+.form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* Tools Tab Styles */
+.tool-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.25rem 0;
+}
+
+.tool-item {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background-color: var(--bg-main);
+    transition: box-shadow 0.2s ease;
+}
+
+.tool-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.tool-header {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: var(--bg-content-area);
+    cursor: pointer;
+}
+
+.tool-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+    color: var(--primary);
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.tool-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.tool-name {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.tool-description {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 24px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border-color);
+    transition: .3s;
+    border-radius: 24px;
+    opacity: 0.8;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+input:checked + .slider {
+    background-color: var(--primary);
+    opacity: 1;
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+.tool-body {    
+    padding: 1.25rem;    
+    border-top: 1px solid var(--border-color);    
+    display: none; /* Hidden by default, shown via JavaScript */
+}
+
+/* Tool form styling - completely revised */
+.tool-body .form-group {
+    margin-bottom: 0.75rem;
+    width: 100%;
+    position: relative;
+}
+
+.tool-body .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.tool-body .form-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.tool-body .form-group input {
+    display: block;
+    width: 100%;
+    padding: 0.625rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+}
+
+.tool-body small {
+    margin-top: 0.375rem;
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+/* Additional Form Styling - for cleaner layout */
+.form-group small {    
+    margin-top: 0.25rem;    
+    display: block;    
+    color: var(--text-secondary);    
+    font-size: 0.75rem;
+}
+
+/* Scrollbar Styling */
+.modal-tab-content::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.modal-tab-content::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+}
+
+.modal-tab-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 10px;
+}
+
+.modal-tab-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Firefox scrollbar */
+.modal-tab-content {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .modal {
+    background-color: var(--bg-main);
+}
+
+[data-theme="dark"] .modal input,
+[data-theme="dark"] .modal textarea {    
+    background-color: var(--bg-content-area);    
+    border-color: var(--border-color);    
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .tool-header {
+    background-color: var(--bg-content-area);
+}
+
+[data-theme="dark"] .tool-body {
+    background-color: var(--bg-main);
+}
+
+[data-theme="dark"] .slider:before {
+    background-color: var(--bg-main);
+}
+
+/* Mobile Responsive Adjustments */
+.tool-item#tool-email .tool-body {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.tool-item#tool-email .form-group {
+    margin-bottom: 0.625rem;
+}
+
+/* Ensure tool bodies have padding at the bottom for scrolling */
+.modal-tab-content .tool-item:last-child {
+    margin-bottom: 1rem;
+}
+
+/* Hide stray API Key text that isn't in a proper form label */
+.tool-body > div:not(.form-group) {
+    display: none !important;
+}
+
+/* Also hide any direct text nodes */
+.tool-body:not(.form-group) > div:empty {
+    display: none !important;
+}
+
+/* Tool status layout improvements */
+.tool-status-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: rgba(0, 0, 0, 0.04);
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+}
+
+.cache-summary {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.cache-summary span {
+    margin-bottom: 0.35rem;
+    color: var(--color-text-primary);
+}
+
+.tool-status-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.tool-status-item {
+    background-color: var(--color-bg-secondary);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tool-status-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+.tool-status-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.tool-status-item-name-container {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tool-status-item-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.tool-status-badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.45rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.status-ready {
+    background-color: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+}
+
+.status-error {
+    background-color: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+}
+
+.status-not-configured {
+    background-color: rgba(149, 165, 166, 0.15);
+    color: #7f8c8d;
+}
+
+.status-unknown {
+    background-color: rgba(241, 196, 15, 0.15);
+    color: #f39c12;
+}
+
+.tool-status-api-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.tool-status-cache-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 500;
+    background-color: rgba(52, 152, 219, 0.15);
+    color: #3498db;
+}
+
+.api-valid {
+    background-color: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+}
+
+.api-invalid {
+    background-color: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+}
+
+.tool-status-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tool-cache-clear-btn {
+    background-color: transparent;
+    border: none;
+    padding: 0.3rem;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-cache-clear-btn:hover {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+
+.tool-status-details {
+    padding: 0.9rem 1rem;
+    font-size: 0.85rem;
+    color: var(--color-text-primary);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background-color: rgba(0, 0, 0, 0.01);
+}
+
+.tool-status-detail-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+}
+
+.tool-status-detail {
+    color: var(--color-text-secondary);
+}
+
+.tool-status-detail b {
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+.clear-all-caches-btn {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.65rem;
+    background-color: rgba(231, 76, 60, 0.06);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    transition: all 0.2s;
+}
+
+.clear-all-caches-btn:hover {
+    background-color: rgba(231, 76, 60, 0.1);
+    border-color: rgba(231, 76, 60, 0.3);
+}
+
+/* Cache styling for each tool */
+.cache-config {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.cache-stats {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 0.75rem;
+    background-color: rgba(52, 152, 219, 0.06);
+    border-radius: 4px;
+    margin-top: 0.5rem;
+    border: 1px solid rgba(52, 152, 219, 0.1);
+}
+
+.cache-stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.cache-stat-label {
+    font-size: 0.7rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.1rem;
+}
+
+.cache-stat-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.hit-ratio-high {
+    color: #2ecc71;
+}
+
+.hit-ratio-medium {
+    color: #f39c12;
+}
+
+.hit-ratio-low {
+    color: #e74c3c;
+}
+
+/* Spinner animation for loading states */
+.spinner {
+    animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .tool-status-item {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border);
+}
+
+[data-theme="dark"] .tool-status-item-header {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .tool-status-summary {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+    .tool-status-detail-row {
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    
+    .tool-status-summary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .tool-status-item-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .tool-status-actions {
+        align-self: flex-end;
+    }
+}
+
+/* Tool controls styling */
+.tool-controls {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+    gap: 0.5rem;
+}
+
+.tool-control-buttons {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.secondary-button {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.secondary-button:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.cache-clear-button {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: rgba(231, 76, 60, 0.06);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cache-clear-button:hover {
+    background-color: rgba(231, 76, 60, 0.12);
+    border-color: rgba(231, 76, 60, 0.3);
+}
+
+.cache-clear-button svg {
+    color: #e74c3c;
+}
+
+/* Tool status loading */
+.tool-status-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--color-text-secondary);
+}
+
+.tool-status-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top: 3px solid var(--primary);
+    border-radius: 50%;
+    margin-bottom: 1rem;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Dark mode adjustments for spinner */
+[data-theme="dark"] .tool-status-spinner {
+    border-color: rgba(255, 255, 255, 0.1);
+    border-top-color: var(--primary);
+}
+
+/* Improved Tool Status Header */
+.tool-status-header {
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 0.5rem;
+}
+
+.tool-status-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--color-text-primary);
+}
+
+/* Tool Status Summary */
+#active-tools-count {
+    font-weight: 500;
+    padding: 0.5rem 0;
+    display: block;
+    font-size: 0.9rem;
+    color: var(--color-text-primary);
+}
+
+/* Add a pill style for status counts */
+.status-pill {
+    display: inline-block;
+    padding: 0.15rem 0.4rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin: 0 0.2rem;
+}
+
+.status-pill.ready {
+    background-color: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+}
+
+.status-pill.error {
+    background-color: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+}
+
+.status-pill.not-configured {
+    background-color: rgba(149, 165, 166, 0.15);
+    color: #7f8c8d;
+} 

@@ -47,9 +47,93 @@ class WeatherTool(Tool[Dict[str, Any]]):
         # Get API credentials from environment or config
         self.api_key = kwargs.get("api_key") or os.getenv("OPENWEATHERMAP_API_KEY")
         
+        # Validate API credentials
+        self._validate_api_key()
+        
         # Rate limiting
         self.rate_limit = kwargs.get("rate_limit", 10)  # requests per minute
         self.request_timestamps = []
+        
+        # Extra configuration
+        self.retry_attempts = kwargs.get("retry_attempts", 3)
+        self.retry_delay = kwargs.get("retry_delay", 1)  # seconds
+        self.retry_backoff = kwargs.get("retry_backoff", 2)  # exponential backoff multiplier
+        
+        # Last API validation time
+        self.last_api_validation = None
+        self.api_validation_ttl = 3600  # Re-validate API key once per hour
+        
+        # Network status
+        self.network_error_count = 0
+        self.last_network_error = None
+    
+    def _validate_api_key(self):
+        """Validate that the API key is properly configured."""
+        self.has_valid_api_key = False
+        
+        if not self.api_key:
+            logger.warning("WeatherTool: No API key configured (OPENWEATHERMAP_API_KEY not set)")
+            return
+            
+        # Basic validation - OpenWeatherMap API keys are typically 32 characters
+        if len(self.api_key) != 32:
+            logger.warning(f"WeatherTool: API key has unusual length: {len(self.api_key)} (expected 32)")
+        
+        # Mark as provisionally valid until tested with API
+        self.has_valid_api_key = True
+        logger.info("WeatherTool: API key configured and appears valid")
+        
+        # Schedule a validation on first use
+        self.last_api_validation = None
+    
+    def _test_api_key(self) -> bool:
+        """Test the API key with a simple API call to validate it works.
+        
+        Returns:
+            bool: True if the API key is valid, False otherwise
+        """
+        current_time = time.time()
+        
+        # Skip validation if we've validated recently
+        if (self.last_api_validation and 
+            current_time - self.last_api_validation < self.api_validation_ttl):
+            return self.has_valid_api_key
+        
+        if not self.api_key:
+            self.has_valid_api_key = False
+            return False
+        
+        try:
+            # Use a simple, quick API call to test the key
+            test_url = "https://api.openweathermap.org/data/2.5/weather"
+            params = {
+                "q": "London",  # Use a common city that will always exist
+                "appid": self.api_key,
+                "units": "metric"
+            }
+            
+            response = requests.get(test_url, params=params, timeout=5)
+            
+            if response.status_code == 200:
+                self.has_valid_api_key = True
+                self.logger.info("WeatherTool: API key validated successfully")
+            elif response.status_code == 401:
+                self.has_valid_api_key = False
+                self.logger.error("WeatherTool: Invalid API key (401 Unauthorized)")
+            else:
+                # Other error codes might not indicate an invalid key
+                self.logger.warning(f"WeatherTool: API key validation returned status code {response.status_code}")
+            
+            # Update last validation time regardless of result
+            self.last_api_validation = current_time
+            
+            return self.has_valid_api_key
+        except Exception as e:
+            self.logger.error(f"WeatherTool: Error validating API key: {str(e)}")
+            # Network errors don't necessarily mean the key is invalid,
+            # so we don't change the existing validation status
+            self.last_api_validation = current_time
+            return self.has_valid_api_key
     
     def _run(self, location: str, forecast_days: int = 0, units: str = "metric") -> Dict[str, Any]:
         """Get weather information for a location.
@@ -73,8 +157,9 @@ class WeatherTool(Tool[Dict[str, Any]]):
         self.logger.info(f"Getting weather for location: '{location}' (forecast days: {forecast_days})")
         
         try:
-            if not self.api_key:
-                self.logger.warning("No OpenWeatherMap API key configured, using fallback response")
+            # Validate API key on first use or if validation has expired
+            if not self.last_api_validation or not self._test_api_key():
+                self.logger.warning("No valid OpenWeatherMap API key, using fallback response")
                 return self._generate_fallback_response(location, forecast_days, units)
             
             # Get current weather or forecast based on parameters
@@ -82,6 +167,10 @@ class WeatherTool(Tool[Dict[str, Any]]):
                 result = self._get_current_weather(location, units)
             else:
                 result = self._get_forecast(location, forecast_days, units)
+            
+            # Reset network error count on success
+            self.network_error_count = 0
+            self.last_network_error = None
             
             return result
             
@@ -140,14 +229,86 @@ class WeatherTool(Tool[Dict[str, Any]]):
                 "units": units
             }
         
-        response = requests.get(base_url, params=params, timeout=10)
+        # Make request with retry logic
+        response = None
+        last_error = None
         
-        if response.status_code != 200:
-            if response.status_code == 404:
-                raise Exception(f"Location '{location}' not found")
-            raise Exception(f"Weather API returned status code {response.status_code}: {response.text}")
+        for attempt in range(self.retry_attempts + 1):
+            try:
+                response = requests.get(base_url, params=params, timeout=10)
+                
+                if response.status_code == 200:
+                    break
+                
+                elif response.status_code == 401:
+                    self.has_valid_api_key = False
+                    self.logger.error("Invalid API key for OpenWeatherMap")
+                    self.last_api_validation = time.time()  # Update last validation time
+                    raise Exception("Invalid API key for weather service")
+                
+                elif response.status_code == 404:
+                    raise Exception(f"Location '{location}' not found")
+                
+                elif response.status_code == 429:
+                    self.logger.warning("Rate limit exceeded for OpenWeatherMap API")
+                    if attempt < self.retry_attempts:
+                        sleep_time = self.retry_delay * (self.retry_backoff ** attempt)
+                        self.logger.info(f"Retrying in {sleep_time} seconds (attempt {attempt+1}/{self.retry_attempts})")
+                        time.sleep(sleep_time)
+                        continue
+                    raise Exception("Rate limit exceeded for weather service")
+                
+                else:
+                    error_msg = f"Weather API returned status code {response.status_code}"
+                    try:
+                        error_data = response.json()
+                        if "message" in error_data:
+                            error_msg += f": {error_data['message']}"
+                    except:
+                        error_msg += f": {response.text}"
+                        
+                    if attempt < self.retry_attempts:
+                        sleep_time = self.retry_delay * (self.retry_backoff ** attempt)
+                        self.logger.warning(f"{error_msg}. Retrying in {sleep_time}s (attempt {attempt+1}/{self.retry_attempts})")
+                        time.sleep(sleep_time)
+                        last_error = error_msg
+                        continue
+                    
+                    raise Exception(error_msg)
+            
+            except requests.exceptions.Timeout:
+                self.network_error_count += 1
+                self.last_network_error = time.time()
+                
+                if attempt < self.retry_attempts:
+                    sleep_time = self.retry_delay * (self.retry_backoff ** attempt)
+                    self.logger.info(f"Request timed out, retrying in {sleep_time} seconds (attempt {attempt+1}/{self.retry_attempts})")
+                    time.sleep(sleep_time)
+                    last_error = "Weather API request timed out"
+                    continue
+                raise Exception("Weather API request timed out after multiple attempts")
+            
+            except requests.exceptions.ConnectionError:
+                self.network_error_count += 1
+                self.last_network_error = time.time()
+                
+                if attempt < self.retry_attempts:
+                    sleep_time = self.retry_delay * (self.retry_backoff ** attempt)
+                    self.logger.info(f"Connection error, retrying in {sleep_time} seconds (attempt {attempt+1}/{self.retry_attempts})")
+                    time.sleep(sleep_time)
+                    last_error = "Connection error when accessing weather service"
+                    continue
+                raise Exception("Connection error when accessing weather service after multiple attempts")
         
-        data = response.json()
+        if not response or response.status_code != 200:
+            if last_error:
+                raise Exception(last_error)
+            raise Exception(f"Failed to get weather data for {location}")
+        
+        try:
+            data = response.json()
+        except ValueError:
+            raise Exception("Invalid JSON response from weather service")
         
         # Format temperature and time data
         main = data.get("main", {})
@@ -226,14 +387,86 @@ class WeatherTool(Tool[Dict[str, Any]]):
                 "units": units
             }
         
-        response = requests.get(base_url, params=params, timeout=10)
+        # Make request with retry logic
+        response = None
+        last_error = None
         
-        if response.status_code != 200:
-            if response.status_code == 404:
-                raise Exception(f"Location '{location}' not found")
-            raise Exception(f"Weather API returned status code {response.status_code}: {response.text}")
+        for attempt in range(self.retry_attempts + 1):
+            try:
+                response = requests.get(base_url, params=params, timeout=10)
+                
+                if response.status_code == 200:
+                    break
+                
+                elif response.status_code == 401:
+                    self.has_valid_api_key = False
+                    self.logger.error("Invalid API key for OpenWeatherMap")
+                    self.last_api_validation = time.time()  # Update last validation time
+                    raise Exception("Invalid API key for weather service")
+                
+                elif response.status_code == 404:
+                    raise Exception(f"Location '{location}' not found")
+                
+                elif response.status_code == 429:
+                    self.logger.warning("Rate limit exceeded for OpenWeatherMap API")
+                    if attempt < self.retry_attempts:
+                        sleep_time = self.retry_delay * (self.retry_backoff ** attempt)
+                        self.logger.info(f"Retrying in {sleep_time} seconds (attempt {attempt+1}/{self.retry_attempts})")
+                        time.sleep(sleep_time)
+                        continue
+                    raise Exception("Rate limit exceeded for weather service")
+                
+                else:
+                    error_msg = f"Weather API returned status code {response.status_code}"
+                    try:
+                        error_data = response.json()
+                        if "message" in error_data:
+                            error_msg += f": {error_data['message']}"
+                    except:
+                        error_msg += f": {response.text}"
+                        
+                    if attempt < self.retry_attempts:
+                        sleep_time = self.retry_delay * (self.retry_backoff ** attempt)
+                        self.logger.warning(f"{error_msg}. Retrying in {sleep_time}s (attempt {attempt+1}/{self.retry_attempts})")
+                        time.sleep(sleep_time)
+                        last_error = error_msg
+                        continue
+                    
+                    raise Exception(error_msg)
+            
+            except requests.exceptions.Timeout:
+                self.network_error_count += 1
+                self.last_network_error = time.time()
+                
+                if attempt < self.retry_attempts:
+                    sleep_time = self.retry_delay * (self.retry_backoff ** attempt)
+                    self.logger.info(f"Request timed out, retrying in {sleep_time} seconds (attempt {attempt+1}/{self.retry_attempts})")
+                    time.sleep(sleep_time)
+                    last_error = "Weather API request timed out"
+                    continue
+                raise Exception("Weather API request timed out after multiple attempts")
+            
+            except requests.exceptions.ConnectionError:
+                self.network_error_count += 1
+                self.last_network_error = time.time()
+                
+                if attempt < self.retry_attempts:
+                    sleep_time = self.retry_delay * (self.retry_backoff ** attempt)
+                    self.logger.info(f"Connection error, retrying in {sleep_time} seconds (attempt {attempt+1}/{self.retry_attempts})")
+                    time.sleep(sleep_time)
+                    last_error = "Connection error when accessing weather service"
+                    continue
+                raise Exception("Connection error when accessing weather service after multiple attempts")
         
-        data = response.json()
+        if not response or response.status_code != 200:
+            if last_error:
+                raise Exception(last_error)
+            raise Exception(f"Failed to get forecast data for {location}")
+        
+        try:
+            data = response.json()
+        except ValueError:
+            raise Exception("Invalid JSON response from weather service")
         
         # Determine units labels
         temp_unit = "°C" if units == "metric" else "°F"
@@ -380,4 +613,22 @@ class WeatherTool(Tool[Dict[str, Any]]):
                 "description": "To use this tool, please set the OPENWEATHERMAP_API_KEY environment variable.",
                 "timestamp": time.time(),
                 "formatted_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            } 
+            }
+            
+    def get_status(self) -> Dict[str, Any]:
+        """Get additional status information specific to the weather tool."""
+        status = super().get_status()
+        
+        # Add weather-specific information
+        status.update({
+            "api_key_validated": self.last_api_validation is not None,
+            "api_validation_age": int(time.time() - self.last_api_validation) if self.last_api_validation else None,
+            "network_errors": self.network_error_count
+        })
+        
+        if self.last_network_error:
+            last_error_dt = datetime.datetime.fromtimestamp(self.last_network_error)
+            status["last_network_error"] = last_error_dt.strftime("%Y-%m-%d %H:%M:%S")
+            status["last_error_age"] = int(time.time() - self.last_network_error)
+        
+        return status 
