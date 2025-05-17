@@ -54,14 +54,15 @@
         if (btn) btn.disabled = true;
         if (sendingStatus) sendingStatus.style.display = 'block';
         
-        const formData = new FormData();
-        formData.append('user_message', input.value);
-        
-        const userMessage = input.value;
+        const userMessageValue = input.value; // Capture value before clearing
         input.value = '';
         autoResizeTextarea(input); // Reset height after clearing
         
-        const eventSource = new EventSource(`/chat/stream?_=${Date.now()}`, {
+        // Encode user_message for URL query parameter
+        const encodedUserMessage = encodeURIComponent(userMessageValue);
+
+        // Create and handle the EventSource for streaming
+        const eventSource = new EventSource(`/chat/stream?user_message=${encodedUserMessage}&_=${Date.now()}`, {
             withCredentials: true
         });
         
