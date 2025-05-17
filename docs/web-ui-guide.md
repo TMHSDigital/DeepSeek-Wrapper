@@ -45,6 +45,37 @@ To provide context from a document:
 3. Once uploaded, the content will be processed and included in your next message
 4. You can reference the document in your query
 
+![File Upload](images/file-upload.png)
+
+#### Supported File Types
+
+| File Type | Extensions | Max Size | Notes |
+|-----------|------------|----------|-------|
+| PDF Documents | .pdf | 10 MB | Text extraction from all pages |
+| Microsoft Word | .docx, .doc | 10 MB | Text extraction with basic formatting preserved |
+| Plain Text | .txt, .md | 5 MB | Direct inclusion of text content |
+
+#### Using Document Context
+
+After uploading a document, you can reference it in your messages in various ways:
+
+```
+# Examples of document references
+"Summarize the uploaded document."
+"Extract the key points from the PDF I just shared."
+"Answer questions based on the content in the document I uploaded."
+"Using the uploaded resume, write a cover letter for a software engineer position."
+```
+
+The document content is automatically analyzed and included in the context for the AI model, making it accessible for the conversation without needing to copy and paste the text manually.
+
+#### Security Notes
+
+- Documents are processed on the server but are not permanently stored
+- Content is extracted and used only for the current session
+- File uploads are scanned for malware and sensitive content
+- Uploads expire after 24 hours or when the session ends
+
 ## Customizing Your Experience
 
 ### Profile Settings
@@ -56,6 +87,19 @@ To provide context from a document:
    - Configure system prompts
    - Adjust UI preferences
 
+![Settings Modal](images/settings-modal.png)
+
+#### User Profile Options
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Display Name | Name shown in the chat interface | "User" |
+| Avatar | Profile picture shown with your messages | Default avatar |
+| Theme | Light, Dark, or System-based | System |
+| Message Density | Compact or Comfortable view | Comfortable |
+| Code Font Size | Size of text in code blocks | Medium |
+| Save History | Whether to save conversation history | Enabled |
+
 ### System Prompts
 
 System prompts help guide the AI's behavior:
@@ -65,6 +109,35 @@ System prompts help guide the AI's behavior:
 3. Save your changes
 4. New conversations will use your custom system prompt
 
+#### System Prompt Templates
+
+The DeepSeek Wrapper includes several pre-built system prompt templates for common use cases:
+
+- **Default Assistant**: General-purpose AI assistant
+- **Code Helper**: Specialized for programming assistance
+- **Writing Assistant**: Optimized for content creation and editing
+- **Data Analyst**: Focused on data analysis and interpretation
+- **Teacher**: Designed for educational explanations
+- **Brainstorming Partner**: Optimized for creative ideation
+
+#### Custom System Prompt Tips
+
+For best results with custom system prompts:
+
+- Be specific about the AI's role and expertise
+- Describe the tone and style you prefer
+- Specify any limitations or focus areas
+- Keep prompts concise but descriptive
+- Include examples of desired behavior when possible
+
+Example custom system prompt:
+```
+You are a professional software developer with expertise in Python and JavaScript. 
+Provide detailed, well-structured code examples with clear explanations. 
+Focus on writing efficient, readable code following best practices. 
+Include error handling in your examples when appropriate.
+```
+
 ### Conversation Management
 
 - **Starting a new conversation**: Click the "New Chat" button
@@ -73,10 +146,27 @@ System prompts help guide the AI's behavior:
 
 ## Keyboard Shortcuts
 
-- `Ctrl+Enter` / `Cmd+Enter`: Send message
-- `Esc`: Cancel current input
-- `Up Arrow`: Edit your last message
-- `Ctrl+K` / `Cmd+K`: Quick action menu
+The DeepSeek Wrapper UI supports a range of keyboard shortcuts to improve productivity:
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Enter` | Submit message | Send your message (when input isn't multi-line) |
+| `Ctrl+Enter` / `Cmd+Enter` | Submit message | Send your message (always works) |
+| `Shift+Enter` | New line | Add a line break in the input area |
+| `Esc` | Cancel | Cancel current input or close modals |
+| `Up Arrow` | Edit last message | Recall and edit your last message |
+| `Ctrl+K` / `Cmd+K` | Quick actions | Open quick action menu |
+| `Ctrl+/` / `Cmd+/` | Keyboard help | Show keyboard shortcut help |
+| `Ctrl+N` / `Cmd+N` | New conversation | Start a new chat |
+| `Ctrl+S` / `Cmd+S` | Save conversation | Save current conversation (if changed) |
+| `Ctrl+F` / `Cmd+F` | Search | Search within the current conversation |
+| `Ctrl+Backspace` / `Cmd+Backspace` | Delete word | Delete the word before cursor |
+| `Alt+Left` / `Alt+Right` | Navigate history | Navigate between conversation history |
+| `Tab` | Auto-complete | When typing code, attempts to auto-complete |
+| `Ctrl+Z` / `Cmd+Z` | Undo | Undo last edit in input box |
+| `Ctrl+Shift+Z` / `Cmd+Shift+Z` | Redo | Redo last undone edit |
+
+These shortcuts can significantly enhance your workflow, especially when engaging in extended conversations or coding sessions.
 
 ## Mobile Usage
 

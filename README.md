@@ -99,32 +99,7 @@ Below are screenshots showing the evolution of the DeepSeek Wrapper web UI and f
 ## Features
 
 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0;">
-  <div style="flex: 1; min-width: 250px; border-left: 4px solid #4A90E2; padding: 10px; background: #F5F9FF; margin: 5px 0;">
-    <h3 style="color: #4A90E2; margin-top: 0;">Modern API</h3>
-    <ul>
-      <li><b>Sync & async support</b></li>
-      <li><b>Type hints throughout</b></li>
-      <li><b>Clean error handling</b></li>
-    </ul>
-  </div>
-  
-  <div style="flex: 1; min-width: 250px; border-left: 4px solid #50C878; padding: 10px; background: #F5FFF7; margin: 5px 0;">
-    <h3 style="color: #50C878; margin-top: 0;">Advanced Web UI</h3>
-    <ul>
-      <li><b>Session-based chat history</b></li>
-      <li><b>Markdown rendering</b></li>
-      <li><b>File uploads & processing</b></li>
-    </ul>
-  </div>
-  
-  <div style="flex: 1; min-width: 250px; border-left: 4px solid #FF6B6B; padding: 10px; background: #FFF5F5; margin: 5px 0;">
-    <h3 style="color: #FF6B6B; margin-top: 0;">Production Ready</h3>
-    <ul>
-      <li><b>Automatic retries with backoff</b></li>
-      <li><b>100% test coverage</b></li>
-      <li><b>Environment variable config</b></li>
-    </ul>
-  </div>
+    <div style="flex: 1; min-width: 250px; border-left: 4px solid #4A90E2; padding: 10px; background: #F5F9FF; margin: 5px 0;">    <h3 style="color: #4A90E2; margin-top: 0;">Modern API</h3>    <ul>      <li><b>Sync & async support</b></li>      <li><b>Type hints throughout</b></li>      <li><b>Clean error handling</b></li>    </ul>  </div>    <div style="flex: 1; min-width: 250px; border-left: 4px solid #50C878; padding: 10px; background: #F5FFF7; margin: 5px 0;">    <h3 style="color: #50C878; margin-top: 0;">Advanced Web UI</h3>    <ul>      <li><b>Session-based chat history</b></li>      <li><b>Markdown rendering</b></li>      <li><b>File uploads & processing</b></li>    </ul>  </div>    <div style="flex: 1; min-width: 250px; border-left: 4px solid #FF9E42; padding: 10px; background: #FFF8F0; margin: 5px 0;">    <h3 style="color: #FF9E42; margin-top: 0;">Real-Time Awareness</h3>    <ul>      <li><b>Current date & time information</b></li>      <li><b>Multiple formats (ISO, US, EU)</b></li>      <li><b>No external API required</b></li>    </ul>  </div>    <div style="flex: 1; min-width: 250px; border-left: 4px solid #FF6B6B; padding: 10px; background: #FFF5F5; margin: 5px 0;">    <h3 style="color: #FF6B6B; margin-top: 0;">Production Ready</h3>    <ul>      <li><b>Automatic retries with backoff</b></li>      <li><b>100% test coverage</b></li>      <li><b>Environment variable config</b></li>    </ul>  </div>
 </div>
 
 ## Web UI (FastAPI)
@@ -171,6 +146,35 @@ async def main():
     result = await client.async_generate_text("Hello async world!", max_tokens=32)
     print(result)
 # asyncio.run(main())
+```
+
+### Real-Time Date Awareness
+
+```python
+from deepseek_wrapper import DeepSeekClient
+from deepseek_wrapper.utils import get_realtime_info
+
+# Get real-time date information as JSON
+realtime_data = get_realtime_info()
+print(realtime_data)  # Prints current date in multiple formats
+
+# Create a client with real-time awareness
+client = DeepSeekClient()
+
+# Use in a system prompt
+system_prompt = f"""You are a helpful assistant with real-time awareness.
+Current date and time information:
+{realtime_data}
+"""
+
+# Send a message with the real-time-aware system prompt
+messages = [
+    {"role": "system", "content": system_prompt},
+    {"role": "user", "content": "What's today's date?"}
+]
+
+response = client.chat_completion(messages)
+print(response)  # Will include the current date
 ```
 
 For a complete API reference and advanced usage, see the [API Reference](docs/api-reference.md).

@@ -36,6 +36,21 @@
       </ul>
     </div>
   </div>
+  
+  <div style="border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
+    <div style="background: #FF9E42; color: white; padding: 10px 15px;">
+      <h3 style="margin: 0; color: white;">Real-Time Awareness</h3>
+    </div>
+    <div style="padding: 15px;">
+      <ul>
+        <li>Current date and time information</li>
+        <li>Multiple time formats (ISO, US, EU, natural language)</li>
+        <li>Day of week, month, and year awareness</li>
+        <li>Timezone support (local and UTC)</li>
+        <li>Automatic injection into system prompts</li>
+      </ul>
+    </div>
+  </div>
 </div>
 
 ## Advanced Features
@@ -107,8 +122,12 @@
     <h3 style="color: #FF6B6B; border-bottom: 2px solid #FF6B6B; padding-bottom: 5px;">Security</h3>
     <ul>
       <li>Environment-based configuration for secure API key storage</li>
-      <li>Input validation and sanitization</li>
-      <li>Secure file handling for uploads</li>
+      <li>Input validation and sanitization to prevent injection attacks</li>
+      <li>Secure file handling for uploads with size and type validation</li>
+      <li>HTTPS-only communications with the DeepSeek API</li>
+      <li>Rate limiting to prevent abuse</li>
+      <li>Content validation to filter potentially harmful outputs</li>
+      <li>Automatic session expiration for inactive users</li>
     </ul>
   </div>
 </div>
@@ -147,4 +166,54 @@
     <li>Customizable authentication methods</li>
     <li>Plugin architecture (planned)</li>
   </ul>
+</div>
+
+## Feature Details
+
+### Real-Time Date Awareness
+
+<div style="padding: 20px; background: #fff8f0; border-radius: 8px; border-left: 4px solid #FF9E42; margin-top: 20px;">
+  <h4 style="color: #FF9E42; margin-top: 0;">Overview</h4>
+  <p>The DeepSeek Wrapper provides seamless real-time date and time awareness to the AI model without requiring external API calls or additional services. This feature allows the model to reference current dates, times, and respond to time-sensitive questions accurately.</p>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; margin: 25px 0;">
+  <div style="flex: 1; min-width: 300px;">
+    <h4 style="color: #FF9E42; border-bottom: 2px solid #FF9E42; padding-bottom: 5px;">Key Capabilities</h4>
+    <ul>
+      <li><strong>Multiple Date Formats:</strong> ISO 8601, US (MM/DD/YYYY), EU (DD/MM/YYYY), and natural language</li>
+      <li><strong>Time Representations:</strong> 12-hour, 24-hour, with timezone support</li>
+      <li><strong>Calendar Awareness:</strong> Day of week, month name, year</li>
+      <li><strong>Timestamp Options:</strong> Unix timestamp and human-readable formats</li>
+      <li><strong>Format Consistency:</strong> Standardized JSON structure for reliable access</li>
+    </ul>
+  </div>
+  
+  <div style="flex: 1; min-width: 300px;">
+    <h4 style="color: #FF9E42; border-bottom: 2px solid #FF9E42; padding-bottom: 5px;">How It Works</h4>
+    <ul>
+      <li><strong>Automatic Integration:</strong> Date/time information is automatically included in system prompts</li>
+      <li><strong>No External API Needed:</strong> Runs locally using Python's datetime capabilities</li>
+      <li><strong>Consistent Updates:</strong> Fresh time information is included with each new request</li>
+      <li><strong>Low Overhead:</strong> Minimal performance impact while providing significant value</li>
+      <li><strong>Developer Access:</strong> Available via API for custom integrations</li>
+    </ul>
+  </div>
+</div>
+
+<div style="padding: 20px; background: #fff8f0; border-radius: 8px; margin: 20px 0;">
+  <h4 style="color: #FF9E42; margin-top: 0;">Example Use Cases</h4>
+  <ul>
+    <li><strong>Time-Sensitive Questions:</strong> "What day of the week is it today?" or "How many days until Christmas?"</li>
+    <li><strong>Scheduling Applications:</strong> Create calendar entries with correct dates</li>
+    <li><strong>Report Generation:</strong> Include accurate timestamps in generated documents</li>
+    <li><strong>Time-Based Greetings:</strong> "Good morning/afternoon/evening" based on current time</li>
+    <li><strong>Date Calculations:</strong> "What date will it be 30 days from now?"</li>
+  </ul>
+</div>
+
+<div style="background: #f8f9fa; border-radius: 8px; padding: 15px; margin-top: 20px;">
+  <h4 style="margin-top: 0;">Example Response</h4>
+  <p>When asked "What's today's date?", the model responds with the current date:</p>
+  <pre style="background: #f1f1f1; padding: 10px; border-radius: 4px;">Today is Saturday, May 17, 2025.</pre>
 </div> 

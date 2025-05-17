@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from deepseek_wrapper import DeepSeekClient, DeepSeekConfig
+from deepseek_wrapper.utils import get_realtime_info
 import os
 from datetime import datetime
 import markdown as md
@@ -91,7 +92,24 @@ async def chat(request: Request, user_message: str = Form(...)):
     error = None
     loading = True
     try:
-        response = await client.async_chat_completion(history)
+        # Add real-time data to the conversation
+        formatted_history = []
+        
+        # Add system message with real-time data
+        realtime_data = get_realtime_info()
+        default_system_prompt = (
+            "You are a helpful AI assistant with real-time awareness. "
+            "You can access current date and time information when needed.\n\n"
+            f"Current date and time information:\n{realtime_data}"
+        )
+        formatted_history.append({"role": "system", "content": default_system_prompt})
+        
+        # Add user messages
+        for msg in history:
+            if "role" in msg and "content" in msg and "file" not in msg:
+                formatted_history.append({"role": msg["role"], "content": msg["content"]})
+        
+        response = await client.async_chat_completion(formatted_history)
         loading = False
     except Exception as e:
         response = f"Error: {e}"
@@ -108,7 +126,14 @@ async def completions(request: Request, prompt: str = Form(...)):
     error = None
     loading = True
     try:
-        response = await client.async_generate_text(prompt)
+        # Enhance prompt with real-time information
+        realtime_data = get_realtime_info()
+        enhanced_prompt = (
+            "You have access to current date and time information:\n\n"
+            f"{realtime_data}\n\n"
+            f"User prompt: {prompt}"
+        )
+        response = await client.async_generate_text(enhanced_prompt)
         loading = False
     except Exception as e:
         response = f"Error: {e}"
@@ -185,9 +210,23 @@ async def chat_stream(request: Request, user_message: str = None, system_prompt:
         
         # Make sure history has proper message format for DeepSeek API
         formatted_history = []
-        # Inject system prompt if provided
+        
+        # Create a system prompt with real-time information if none provided
         if system_prompt:
-            formatted_history.append({"role": "system", "content": system_prompt})
+            # Append real-time information to user-provided system prompt
+            realtime_data = get_realtime_info()
+            enhanced_system_prompt = f"{system_prompt}\n\nCurrent date and time information:\n{realtime_data}"
+            formatted_history.append({"role": "system", "content": enhanced_system_prompt})
+        else:
+            # Create a default system prompt with real-time information
+            realtime_data = get_realtime_info()
+            default_system_prompt = (
+                "You are a helpful AI assistant with real-time awareness. "
+                "You can access current date and time information when needed.\n\n"
+                f"Current date and time information:\n{realtime_data}"
+            )
+            formatted_history.append({"role": "system", "content": default_system_prompt})
+            
         for msg in history:
             if "role" in msg and "content" in msg:
                 # Skip file messages for the API call, as DeepSeek doesn't support them natively
