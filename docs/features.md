@@ -6,37 +6,38 @@
 
 <hr style="margin: 30px 0;">
 
-## Core Features
+## Features
 
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin: 25px 0;">
-  <div style="border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
-    <div style="background: #4A90E2; color: white; padding: 10px 15px;">
-      <h3 style="margin: 0; color: white;">Model Access</h3>
-    </div>
-    <div style="padding: 15px;">
-      <ul>
-        <li>Access to DeepSeek's state-of-the-art AI models</li>
-        <li>Support for different model types (chat, completion, embedding)</li>
-        <li>Configurable model parameters (temperature, max tokens, etc.)</li>
-      </ul>
-    </div>
+<div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 40px;">
+  <div style="flex: 1; min-width: 300px; border-left: 4px solid #4A90E2; padding: 10px; background: #F5F9FF; margin: 5px 0;">
+    <h3 style="color: #4A90E2; margin-top: 0;">Modern API</h3>
+    <ul>
+      <li><b>Sync & async support</b></li>
+      <li><b>Type hints throughout</b></li>
+      <li><b>Clean error handling</b></li>
+    </ul>
   </div>
   
-  <div style="border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
-    <div style="background: #50C878; color: white; padding: 10px 15px;">
-      <h3 style="margin: 0; color: white;">Chat Interface</h3>
-    </div>
-    <div style="padding: 15px;">
-      <ul>
-        <li>Modern, responsive web UI for conversational AI</li>
-        <li>Real-time streaming of responses</li>
-        <li>Markdown rendering with syntax highlighting</li>
-        <li>Message history with persistent storage</li>
-        <li>Proper handling of code blocks and formatting</li>
-      </ul>
-    </div>
+  <div style="flex: 1; min-width: 300px; border-left: 4px solid #50C878; padding: 10px; background: #F5FFF7; margin: 5px 0;">
+    <h3 style="color: #50C878; margin-top: 0;">Advanced Web UI</h3>
+    <ul>
+      <li><b>Session-based chat history</b></li>
+      <li><b>Markdown rendering</b></li>
+      <li><b>File uploads & processing</b></li>
+    </ul>
   </div>
   
+  <div style="flex: 1; min-width: 300px; border-left: 4px solid #FF6B6B; padding: 10px; background: #FFF5F5; margin: 5px 0;">
+    <h3 style="color: #FF6B6B; margin-top: 0;">Production Ready</h3>
+    <ul>
+      <li><b>Comprehensive logging</b></li>
+      <li><b>Request retry logic</b></li>
+      <li><b>Auto-scaling handling</b></li>
+    </ul>
+  </div>
+</div>
+
+<div style="margin-top: 20px;">
   <div style="border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
     <div style="background: #FF9E42; color: white; padding: 10px 15px;">
       <h3 style="margin: 0; color: white;">Real-Time Awareness</h3>
@@ -48,6 +49,21 @@
         <li>Day of week, month, and year awareness</li>
         <li>Timezone support (local and UTC)</li>
         <li>Automatic injection into system prompts</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden; margin-top: 20px;">
+    <div style="background: #9D56F7; color: white; padding: 10px 15px;">
+      <h3 style="margin: 0; color: white;">Tool Integration Framework</h3>
+    </div>
+    <div style="padding: 15px;">
+      <ul>
+        <li>AI-powered function calling capabilities</li>
+        <li>Extensible tool registry system</li>
+        <li>Built-in tools for common tasks</li>
+        <li>API integrations (Weather, Web Search, Wolfram Alpha)</li>
+        <li>Custom tool creation framework</li>
       </ul>
     </div>
   </div>
@@ -173,47 +189,37 @@
 ### Real-Time Date Awareness
 
 <div style="padding: 20px; background: #fff8f0; border-radius: 8px; border-left: 4px solid #FF9E42; margin-top: 20px;">
-  <h4 style="color: #FF9E42; margin-top: 0;">Overview</h4>
-  <p>The DeepSeek Wrapper provides seamless real-time date and time awareness to the AI model without requiring external API calls or additional services. This feature allows the model to reference current dates, times, and respond to time-sensitive questions accurately.</p>
+The DeepSeek Wrapper includes comprehensive real-time date awareness, providing accurate current date and time information to the model in multiple formats. This feature ensures the AI always knows the current date, day of the week, month, and year, allowing for more contextually appropriate responses.
+
+The real-time information is automatically injected into system prompts, so the model is always aware of the current date without requiring explicit user queries. This is especially useful for questions about current events, scheduling, and any date-dependent information.
+
+**Example outputs:**
+- Today's date: May 17, 2025
+- Current day: Saturday
+- Current month and year: May 2025
+- US date format: 05/17/2025
+- EU date format: 17/05/2025
+- ISO format: 2025-05-17T14:30:45
 </div>
 
-<div style="display: flex; flex-wrap: wrap; gap: 20px; margin: 25px 0;">
-  <div style="flex: 1; min-width: 300px;">
-    <h4 style="color: #FF9E42; border-bottom: 2px solid #FF9E42; padding-bottom: 5px;">Key Capabilities</h4>
-    <ul>
-      <li><strong>Multiple Date Formats:</strong> ISO 8601, US (MM/DD/YYYY), EU (DD/MM/YYYY), and natural language</li>
-      <li><strong>Time Representations:</strong> 12-hour, 24-hour, with timezone support</li>
-      <li><strong>Calendar Awareness:</strong> Day of week, month name, year</li>
-      <li><strong>Timestamp Options:</strong> Unix timestamp and human-readable formats</li>
-      <li><strong>Format Consistency:</strong> Standardized JSON structure for reliable access</li>
-    </ul>
-  </div>
-  
-  <div style="flex: 1; min-width: 300px;">
-    <h4 style="color: #FF9E42; border-bottom: 2px solid #FF9E42; padding-bottom: 5px;">How It Works</h4>
-    <ul>
-      <li><strong>Automatic Integration:</strong> Date/time information is automatically included in system prompts</li>
-      <li><strong>No External API Needed:</strong> Runs locally using Python's datetime capabilities</li>
-      <li><strong>Consistent Updates:</strong> Fresh time information is included with each new request</li>
-      <li><strong>Low Overhead:</strong> Minimal performance impact while providing significant value</li>
-      <li><strong>Developer Access:</strong> Available via API for custom integrations</li>
-    </ul>
-  </div>
-</div>
+### Tool Integration Framework
 
-<div style="padding: 20px; background: #fff8f0; border-radius: 8px; margin: 20px 0;">
-  <h4 style="color: #FF9E42; margin-top: 0;">Example Use Cases</h4>
-  <ul>
-    <li><strong>Time-Sensitive Questions:</strong> "What day of the week is it today?" or "How many days until Christmas?"</li>
-    <li><strong>Scheduling Applications:</strong> Create calendar entries with correct dates</li>
-    <li><strong>Report Generation:</strong> Include accurate timestamps in generated documents</li>
-    <li><strong>Time-Based Greetings:</strong> "Good morning/afternoon/evening" based on current time</li>
-    <li><strong>Date Calculations:</strong> "What date will it be 30 days from now?"</li>
-  </ul>
-</div>
+<div style="padding: 20px; background: #f9f0ff; border-radius: 8px; border-left: 4px solid #9D56F7; margin-top: 20px;">
+The DeepSeek Wrapper includes a powerful and extensible tool integration framework that enables the AI to perform real-world actions and access external data sources. This function calling capability allows the AI to use tools when needed to provide more accurate, up-to-date information.
 
-<div style="background: #f8f9fa; border-radius: 8px; padding: 15px; margin-top: 20px;">
-  <h4 style="margin-top: 0;">Example Response</h4>
-  <p>When asked "What's today's date?", the model responds with the current date:</p>
-  <pre style="background: #f1f1f1; padding: 10px; border-radius: 4px;">Today is Saturday, May 17, 2025.</pre>
+The framework includes built-in tools for common tasks:
+- **DateTimeTool**: Access current date and time in various formats and timezones
+- **CalculatorTool**: Perform complex mathematical calculations
+- **WeatherTool**: Get current weather conditions and forecasts for any location
+- **WebSearchTool**: Search the web for real-time information
+- **WolframAlphaTool**: Access computational knowledge for advanced queries
+
+The system is designed to be easily extensible, allowing developers to create custom tools by extending the base Tool class. The AI can intelligently decide when to use tools based on user queries, creating a more capable and responsive assistant.
+
+**Example use cases:**
+- Calculate complex mathematical expressions
+- Get weather forecasts for travel planning
+- Access real-time information for current events
+- Convert between units and currencies
+- Answer knowledge-based questions with factual data
 </div> 

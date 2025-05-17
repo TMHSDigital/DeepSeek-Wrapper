@@ -100,6 +100,14 @@ Below are screenshots showing the evolution of the DeepSeek Wrapper web UI and f
 
 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0;">
     <div style="flex: 1; min-width: 250px; border-left: 4px solid #4A90E2; padding: 10px; background: #F5F9FF; margin: 5px 0;">    <h3 style="color: #4A90E2; margin-top: 0;">Modern API</h3>    <ul>      <li><b>Sync & async support</b></li>      <li><b>Type hints throughout</b></li>      <li><b>Clean error handling</b></li>    </ul>  </div>    <div style="flex: 1; min-width: 250px; border-left: 4px solid #50C878; padding: 10px; background: #F5FFF7; margin: 5px 0;">    <h3 style="color: #50C878; margin-top: 0;">Advanced Web UI</h3>    <ul>      <li><b>Session-based chat history</b></li>      <li><b>Markdown rendering</b></li>      <li><b>File uploads & processing</b></li>    </ul>  </div>    <div style="flex: 1; min-width: 250px; border-left: 4px solid #FF9E42; padding: 10px; background: #FFF8F0; margin: 5px 0;">    <h3 style="color: #FF9E42; margin-top: 0;">Real-Time Awareness</h3>    <ul>      <li><b>Current date & time information</b></li>      <li><b>Multiple formats (ISO, US, EU)</b></li>      <li><b>No external API required</b></li>    </ul>  </div>    <div style="flex: 1; min-width: 250px; border-left: 4px solid #FF6B6B; padding: 10px; background: #FFF5F5; margin: 5px 0;">    <h3 style="color: #FF6B6B; margin-top: 0;">Production Ready</h3>    <ul>      <li><b>Automatic retries with backoff</b></li>      <li><b>100% test coverage</b></li>      <li><b>Environment variable config</b></li>    </ul>  </div>
+    <div style="flex: 1; min-width: 250px; border-left: 4px solid #9D56F7; padding: 10px; background: #F9F0FF; margin: 5px 0;">
+      <h3 style="color: #9D56F7; margin-top: 0;">Function Calling</h3>
+      <ul>
+        <li><b>Tool integration framework</b></li>
+        <li><b>Built-in tools (Weather, Calculator)</b></li>
+        <li><b>Custom tool creation system</b></li>
+      </ul>
+    </div>
 </div>
 
 ## Web UI (FastAPI)
@@ -177,6 +185,33 @@ response = client.chat_completion(messages)
 print(response)  # Will include the current date
 ```
 
+### Function Calling with Tools
+
+```python
+from deepseek_wrapper import DeepSeekClient, DateTimeTool, WeatherTool, CalculatorTool
+
+# Create a client and register tools
+client = DeepSeekClient()
+client.register_tool(DateTimeTool())
+client.register_tool(WeatherTool())
+client.register_tool(CalculatorTool())
+
+# Create a conversation
+messages = [
+    {"role": "user", "content": "What's the weather in London today? Also, what's the square root of 144?"}
+]
+
+# Get a response with tool usage
+response, tool_usage = client.chat_completion_with_tools(messages)
+
+# Print the final response
+print(response)
+
+# See which tools were used
+for tool in tool_usage:
+    print(f"Used {tool['tool']} with args: {tool['arguments']}")
+```
+
 For a complete API reference and advanced usage, see the [API Reference](docs/api-reference.md).
 
 ## Configuration
@@ -189,11 +224,6 @@ For a complete API reference and advanced usage, see the [API Reference](docs/ap
 For deployment options and environment configurations, see the [Deployment Guide](docs/deployment.md).
 
 ## API Reference
-- `DeepSeekClient.generate_text(prompt, **kwargs)` → str
-- `DeepSeekClient.async_generate_text(prompt, **kwargs)` → str
-- `DeepSeekClient.chat_completion(messages, **kwargs)` → str
-- `DeepSeekClient.async_chat_completion(messages, **kwargs)` → str
-
 All methods accept extra keyword args for model parameters (e.g., `temperature`, `top_p`, etc).
 
 ## Testing
@@ -203,7 +233,7 @@ pytest --cov=src/deepseek_wrapper
 ```
 
 ## Contributing
-- See [CONTRIBUTING.md](docs/CONTRIBUTING.md)
+
 - Run `pre-commit install` to enable hooks
 
 ## Links
@@ -212,4 +242,4 @@ pytest --cov=src/deepseek_wrapper
 - [GitHub Repo](https://github.com/TMHSDigital/DeepSeek-Wrapper)
 
 ## License
-This project is licensed under the [Apache 2.0 License](docs/LICENSE).
+## Contributing
