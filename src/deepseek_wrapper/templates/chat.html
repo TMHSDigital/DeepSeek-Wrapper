@@ -12,13 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-    .modal-backdrop { position: fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:1000; display:none; }
-    .modal { position: fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; color:#222; border-radius:8px; box-shadow:0 2px 16px rgba(0,0,0,0.2); z-index:1001; min-width:320px; max-width:90vw; padding:2em 1.5em; display:none; }
-    .modal h2 { margin-bottom:1em; font-size:1.2em; }
-    .modal label { display:block; margin:0.5em 0 0.2em; font-weight:500; }
-    .modal input, .modal textarea { width:100%; margin-bottom:1em; padding:0.5em; border-radius:4px; border:1px solid #ccc; font-size:1em; }
-    .modal-actions { text-align:right; }
-    .modal-actions button { margin-left:0.5em; }
     #scroll-bottom {
         transition: opacity 0.2s;
         opacity: 0;
@@ -253,155 +246,64 @@
     }
     
     function saveSettings() {
-        // Save general settings
-        localStorage.setItem('ds_username', document.getElementById('settings-username').value);
-        localStorage.setItem('ds_avatar', document.getElementById('settings-avatar').value);
-        localStorage.setItem('ds_system_prompt', document.getElementById('settings-system-prompt').value);
-        document.getElementById('user_name_hidden').value = document.getElementById('settings-username').value;
-        document.getElementById('user_avatar_hidden').value = document.getElementById('settings-avatar').value;
-        document.getElementById('system_prompt_hidden').value = document.getElementById('settings-system-prompt').value;
+        // Get the active tab
+        const activeTab = document.querySelector('.settings-tab-btn.active').getAttribute('data-tab');
         
-        // Save tool settings
-        saveToolSettings();
+        // Save general settings
+        localStorage.setItem('ds_username', document.getElementById('settings-username').value || 'User');
+        localStorage.setItem('ds_avatar', document.getElementById('settings-avatar').value || 'U');
+        localStorage.setItem('ds_system_prompt', document.getElementById('settings-system-prompt').value || 'You are DeepSeek Chat, a helpful AI assistant.');
+        
+        // Update UI with new settings
+        document.querySelectorAll('.user .avatar-letter').forEach(el => {
+            el.textContent = localStorage.getItem('ds_avatar') || 'U';
+        });
+        
+        // If we're on the tools tab, also save API keys
+        if (activeTab === 'tools') {
+            saveApiKeys();
+        }
         
         closeSettings();
     }
     
-    function loadToolSettings() {
-        // Load tool toggle states
-        document.getElementById('tool-websearch-toggle').checked = localStorage.getItem('tool_websearch_enabled') !== 'false';
-        document.getElementById('tool-weather-toggle').checked = localStorage.getItem('tool_weather_enabled') !== 'false';
-        document.getElementById('tool-email-toggle').checked = localStorage.getItem('tool_email_enabled') !== 'false';
-        document.getElementById('tool-calculator-toggle').checked = localStorage.getItem('tool_calculator_enabled') !== 'false';
-        document.getElementById('tool-date-toggle').checked = localStorage.getItem('tool_date_enabled') !== 'false';
-        
-        // Load API keys from localStorage (these are stored temporarily until explicitly saved to .env)
-        document.getElementById('websearch-api-key').value = localStorage.getItem('websearch_api_key') || '';
-        document.getElementById('weather-api-key').value = localStorage.getItem('weather_api_key') || '';
-        document.getElementById('email-smtp-server').value = localStorage.getItem('email_smtp_server') || '';
-        document.getElementById('email-username').value = localStorage.getItem('email_username') || '';
-        document.getElementById('email-password').value = localStorage.getItem('email_password') || '';
-        
-        // Show/hide tool config bodies based on toggle state
-        updateToolConfigVisibility();
-    }
-    
-    function saveToolSettings() {
-        // Save tool toggle states
-        localStorage.setItem('tool_websearch_enabled', document.getElementById('tool-websearch-toggle').checked);
-        localStorage.setItem('tool_weather_enabled', document.getElementById('tool-weather-toggle').checked);
-        localStorage.setItem('tool_email_enabled', document.getElementById('tool-email-toggle').checked);
-        localStorage.setItem('tool_calculator_enabled', document.getElementById('tool-calculator-toggle').checked);
-        localStorage.setItem('tool_date_enabled', document.getElementById('tool-date-toggle').checked);
-        
-        // Save API keys to localStorage temporarily
-        localStorage.setItem('websearch_api_key', document.getElementById('websearch-api-key').value);
-        localStorage.setItem('weather_api_key', document.getElementById('weather-api-key').value);
-        localStorage.setItem('email_smtp_server', document.getElementById('email-smtp-server').value);
-        localStorage.setItem('email_username', document.getElementById('email-username').value);
-        localStorage.setItem('email_password', document.getElementById('email-password').value);
-    }
-    
-    function saveApiKeys() {
-        // Create an object with all API key data
-        const apiKeys = {
-            WEBSEARCH_API_KEY: document.getElementById('websearch-api-key').value,
-            WEATHER_API_KEY: document.getElementById('weather-api-key').value,
-            EMAIL_SMTP_SERVER: document.getElementById('email-smtp-server').value,
-            EMAIL_USERNAME: document.getElementById('email-username').value,
-            EMAIL_PASSWORD: document.getElementById('email-password').value
-        };
-        
-        // Only send non-empty values
-        const keysToSave = {};
-        for (const [key, value] of Object.entries(apiKeys)) {
-            if (value.trim() !== '') {
-                keysToSave[key] = value;
-            }
-        }
-        
-        // Send API keys to server to be saved in .env file
-        if (Object.keys(keysToSave).length > 0) {
-            fetch('/save_api_keys', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(keysToSave)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('API keys saved successfully!');
-                } else {
-                    alert('Error saving API keys: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error saving API keys. Check console for details.');
-            });
-        } else {
-            alert('No API keys to save.');
-        }
-    }
-    
-    function updateToolConfigVisibility() {
-        // Show/hide tool config bodies based on toggle state
-        const toolItems = document.querySelectorAll('.tool-config-item');
-        toolItems.forEach(item => {
-            const header = item.querySelector('.tool-config-header');
-            const body = item.querySelector('.tool-config-body');
-            const toggle = header.querySelector('input[type="checkbox"]');
-            
-            // Only show body if exists and toggle is checked
-            if (body && toggle && !toggle.checked) {
-                body.style.display = 'none';
-            } else if (body) {
-                body.style.display = 'block';
-            }
-            
-            // Add click handler to header
-            header.addEventListener('click', function(e) {
-                // Don't trigger when clicking on the toggle itself
-                if (e.target.tagName !== 'INPUT') {
-                    if (toggle) {
-                        toggle.checked = !toggle.checked;
-                        // Trigger change event
-                        toggle.dispatchEvent(new Event('change'));
-                    }
-                }
-            });
-        });
-    }
-    
-    window.addEventListener('DOMContentLoaded', function() {
-        // Set hidden fields from localStorage
-        document.getElementById('user_name_hidden').value = localStorage.getItem('ds_username') || 'User';
-        document.getElementById('user_avatar_hidden').value = localStorage.getItem('ds_avatar') || 'U';
-        document.getElementById('system_prompt_hidden').value = localStorage.getItem('ds_system_prompt') || 'You are DeepSeek Chat, a helpful AI assistant.';
-        
-        // Set up settings tabs
+    // Settings tabs logic
+    document.addEventListener('DOMContentLoaded', function() {
         const tabButtons = document.querySelectorAll('.settings-tab-btn');
-        const tabContents = document.querySelectorAll('.settings-tab-content');
         
         tabButtons.forEach(button => {
             button.addEventListener('click', function() {
-                const tabName = this.getAttribute('data-tab');
-                
-                // Deactivate all tabs
+                // Remove active class from all tabs
                 tabButtons.forEach(btn => btn.classList.remove('active'));
-                tabContents.forEach(content => content.classList.remove('active'));
+                document.querySelectorAll('.settings-tab-content').forEach(content => content.classList.remove('active'));
                 
-                // Activate clicked tab
+                // Add active class to clicked tab
                 this.classList.add('active');
+                const tabName = this.getAttribute('data-tab');
                 document.getElementById(tabName + '-tab').classList.add('active');
             });
         });
         
         // Set up tool toggle event handlers
+        initializeToolToggles();
+    });
+    
+    function initializeToolToggles() {
         const toggles = document.querySelectorAll('.tool-config-header input[type="checkbox"]');
         toggles.forEach(toggle => {
+            // Get parent tool-config-header element
+            const header = toggle.closest('.tool-config-header');
+            
+            // Add click handler for the header (excluding the switch)
+            header.addEventListener('click', function(e) {
+                // Only toggle if clicking on the header itself, not the switch
+                if (e.target !== toggle && !e.target.closest('.switch')) {
+                    toggle.checked = !toggle.checked;
+                    // Trigger the change event to update UI
+                    toggle.dispatchEvent(new Event('change'));
+                }
+            });
+            
             toggle.addEventListener('change', function() {
                 const toolConfigItem = this.closest('.tool-config-item');
                 const configBody = toolConfigItem.querySelector('.tool-config-body');
@@ -410,11 +312,54 @@
                     configBody.style.display = this.checked ? 'block' : 'none';
                 }
             });
+            
+            // Initialize visibility based on current state
+            const toolConfigItem = toggle.closest('.tool-config-item');
+            const configBody = toolConfigItem.querySelector('.tool-config-body');
+            if (configBody) {
+                configBody.style.display = toggle.checked ? 'block' : 'none';
+            }
         });
+    }
+    
+    function loadToolSettings() {
+        // TODO: Load API keys from server or localStorage
+        // This would typically involve an API call to retrieve stored keys
         
-        // Set up API keys save button
-        document.getElementById('save-api-keys-btn').addEventListener('click', saveApiKeys);
-    });
+        // Initialize tool configuration UI
+        initializeToolToggles();
+    }
+    
+    function saveApiKeys() {
+        const apiKeys = {
+            WEBSEARCH_API_KEY: document.getElementById('websearch-api-key').value,
+            WEATHER_API_KEY: document.getElementById('weather-api-key').value,
+            EMAIL_SMTP_SERVER: document.getElementById('email-smtp-server').value,
+            EMAIL_USERNAME: document.getElementById('email-username').value,
+            EMAIL_PASSWORD: document.getElementById('email-password').value
+        };
+        
+        // Send API keys to server
+        fetch('/api/save-api-keys', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(apiKeys)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('API keys saved successfully');
+            } else {
+                alert('Error saving API keys: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving API keys:', error);
+            alert('Error saving API keys. Please try again.');
+        });
+    }
     </script>
 </head>
 <body>
@@ -426,117 +371,117 @@
             <button class="settings-tab-btn" data-tab="tools">Tools</button>
         </div>
         
-        <div class="settings-tab-content active" id="general-tab">
-            <label for="settings-username">Your Name</label>
-            <input id="settings-username" maxlength="32" />
-            <label for="settings-avatar">Avatar (letter or emoji)</label>
-            <input id="settings-avatar" maxlength="2" />
-            <label for="settings-system-prompt">System Prompt</label>
-            <textarea id="settings-system-prompt" rows="4"></textarea>
-        </div>
-        
-        <div class="settings-tab-content" id="tools-tab">
-            <div class="tool-config-list">
-                <div class="tool-config-item">
-                    <div class="tool-config-header">
-                        <div class="tool-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <div class="modal-content">
+            <div class="settings-tab-content active" id="general-tab">
+                <label for="settings-username">Your Name</label>
+                <input id="settings-username" maxlength="32" />
+                <label for="settings-avatar">Avatar (letter or emoji)</label>
+                <input id="settings-avatar" maxlength="2" />
+                <label for="settings-system-prompt">System Prompt</label>
+                <textarea id="settings-system-prompt" rows="4"></textarea>
+            </div>
+            
+            <div class="settings-tab-content" id="tools-tab">
+                <div class="tool-config-list">
+                    <div class="tool-config-item">
+                        <div class="tool-config-header">
+                            <div class="tool-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            </div>
+                            <div class="tool-details">
+                                <span class="tool-name">Web Search</span>
+                                <span class="tool-description">Search the web for real-time information</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="tool-websearch-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
                         </div>
-                        <div class="tool-details">
-                            <span class="tool-name">Web Search</span>
-                            <span class="tool-description">Search the web for real-time information</span>
+                        <div class="tool-config-body">
+                            <label for="websearch-api-key">API Key</label>
+                            <input type="password" id="websearch-api-key" placeholder="Enter your web search API key" />
+                            <small>This will be saved in your .env file</small>
                         </div>
-                        <label class="switch">
-                            <input type="checkbox" id="tool-websearch-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
                     </div>
-                    <div class="tool-config-body">
-                        <label for="websearch-api-key">API Key</label>
-                        <input type="password" id="websearch-api-key" placeholder="Enter your web search API key" />
-                        <small>This will be saved in your .env file</small>
+                    
+                    <div class="tool-config-item">
+                        <div class="tool-config-header">
+                            <div class="tool-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>
+                            </div>
+                            <div class="tool-details">
+                                <span class="tool-name">Weather</span>
+                                <span class="tool-description">Get weather information</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="tool-weather-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="tool-config-body">
+                            <label for="weather-api-key">API Key</label>
+                            <input type="password" id="weather-api-key" placeholder="Enter your weather API key" />
+                            <small>This will be saved in your .env file</small>
+                        </div>
+                    </div>
+                    
+                    <div class="tool-config-item">
+                        <div class="tool-config-header">
+                            <div class="tool-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                            </div>
+                            <div class="tool-details">
+                                <span class="tool-name">Email</span>
+                                <span class="tool-description">Compose and send emails</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="tool-email-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="tool-config-body">
+                            <label for="email-smtp-server">SMTP Server</label>
+                            <input type="text" id="email-smtp-server" placeholder="smtp.example.com" />
+                            <label for="email-username">SMTP Username</label>
+                            <input type="text" id="email-username" placeholder="Your email" />
+                            <label for="email-password">SMTP Password</label>
+                            <input type="password" id="email-password" placeholder="Your password" />
+                            <small>This will be saved in your .env file</small>
+                        </div>
+                    </div>
+                    
+                    <div class="tool-config-item">
+                        <div class="tool-config-header">
+                            <div class="tool-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><line x1="8" y1="18" x2="12" y2="18"></line><line x1="8" y1="14" x2="12" y2="14"></line><line x1="8" y1="10" x2="16" y2="10"></line></svg>
+                            </div>
+                            <div class="tool-details">
+                                <span class="tool-name">Calculator</span>
+                                <span class="tool-description">Perform calculations</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="tool-calculator-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="tool-config-item">
+                        <div class="tool-config-header">
+                            <div class="tool-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            </div>
+                            <div class="tool-details">
+                                <span class="tool-name">Date & Time</span>
+                                <span class="tool-description">Get current date and time information</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="tool-date-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="tool-config-item">
-                    <div class="tool-config-header">
-                        <div class="tool-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>
-                        </div>
-                        <div class="tool-details">
-                            <span class="tool-name">Weather</span>
-                            <span class="tool-description">Get weather information</span>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="tool-weather-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="tool-config-body">
-                        <label for="weather-api-key">API Key</label>
-                        <input type="password" id="weather-api-key" placeholder="Enter your weather API key" />
-                        <small>This will be saved in your .env file</small>
-                    </div>
-                </div>
-                
-                <div class="tool-config-item">
-                    <div class="tool-config-header">
-                        <div class="tool-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                        </div>
-                        <div class="tool-details">
-                            <span class="tool-name">Email</span>
-                            <span class="tool-description">Compose and send emails</span>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="tool-email-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="tool-config-body">
-                        <label for="email-smtp-server">SMTP Server</label>
-                        <input type="text" id="email-smtp-server" placeholder="smtp.example.com" />
-                        <label for="email-username">SMTP Username</label>
-                        <input type="text" id="email-username" placeholder="Your email" />
-                        <label for="email-password">SMTP Password</label>
-                        <input type="password" id="email-password" placeholder="Your password" />
-                        <small>This will be saved in your .env file</small>
-                    </div>
-                </div>
-                
-                <div class="tool-config-item">
-                    <div class="tool-config-header">
-                        <div class="tool-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><line x1="8" y1="18" x2="12" y2="18"></line><line x1="8" y1="14" x2="12" y2="14"></line><line x1="8" y1="10" x2="16" y2="10"></line></svg>
-                        </div>
-                        <div class="tool-details">
-                            <span class="tool-name">Calculator</span>
-                            <span class="tool-description">Perform calculations</span>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="tool-calculator-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="tool-config-item">
-                    <div class="tool-config-header">
-                        <div class="tool-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                        </div>
-                        <div class="tool-details">
-                            <span class="tool-name">Date & Time</span>
-                            <span class="tool-description">Get current date and time information</span>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="tool-date-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                </div>
-                
-                <button id="save-api-keys-btn" class="save-api-btn">Save API Keys</button>
             </div>
         </div>
         
@@ -950,40 +895,6 @@
         document.getElementById('user_name_hidden').value = localStorage.getItem('ds_username') || 'User';
         document.getElementById('user_avatar_hidden').value = localStorage.getItem('ds_avatar') || 'U';
         document.getElementById('system_prompt_hidden').value = localStorage.getItem('ds_system_prompt') || 'You are DeepSeek Chat, a helpful AI assistant.';
-        
-        // Set up settings tabs
-        const tabButtons = document.querySelectorAll('.settings-tab-btn');
-        const tabContents = document.querySelectorAll('.settings-tab-content');
-        
-        tabButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const tabName = this.getAttribute('data-tab');
-                
-                // Deactivate all tabs
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                tabContents.forEach(content => content.classList.remove('active'));
-                
-                // Activate clicked tab
-                this.classList.add('active');
-                document.getElementById(tabName + '-tab').classList.add('active');
-            });
-        });
-        
-        // Set up tool toggle event handlers
-        const toggles = document.querySelectorAll('.tool-config-header input[type="checkbox"]');
-        toggles.forEach(toggle => {
-            toggle.addEventListener('change', function() {
-                const toolConfigItem = this.closest('.tool-config-item');
-                const configBody = toolConfigItem.querySelector('.tool-config-body');
-                
-                if (configBody) {
-                    configBody.style.display = this.checked ? 'block' : 'none';
-                }
-            });
-        });
-        
-        // Set up API keys save button
-        document.getElementById('save-api-keys-btn').addEventListener('click', saveApiKeys);
     });
     </script>
 </body>
