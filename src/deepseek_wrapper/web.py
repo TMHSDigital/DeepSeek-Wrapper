@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, UploadFile, File
+from fastapi import FastAPI, Request, Form, UploadFile, File, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -11,6 +11,15 @@ import json
 import asyncio
 import traceback
 import logging
+import io
+try:
+    import docx
+except ImportError:
+    docx = None
+try:
+    import PyPDF2
+except ImportError:
+    PyPDF2 = None
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -36,6 +45,8 @@ except Exception as e:
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), '../../uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
+MAX_FILE_CHARS = 4000  # Limit injected text for context
 
 def now_str():
     return datetime.now().strftime("%H:%M:%S")
@@ -114,11 +125,31 @@ async def reset(request: Request):
     request.session["history"] = []
     return RedirectResponse("/", status_code=303)
 
+def extract_text_from_file(file_path, content_type):
+    ext = os.path.splitext(file_path)[1].lower()
+    try:
+        if ext == '.txt':
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                return f.read()
+        elif ext == '.pdf' and PyPDF2:
+            with open(file_path, 'rb') as f:
+                reader = PyPDF2.PdfReader(f)
+                return '\n'.join(page.extract_text() or '' for page in reader.pages)
+        elif ext == '.docx' and docx:
+            doc = docx.Document(file_path)
+            return '\n'.join(p.text for p in doc.paragraphs)
+        else:
+            return None
+    except Exception as e:
+        logger.error(f"Failed to extract text from {file_path}: {e}")
+        return None
+
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), request: Request = None):
     file_location = os.path.join(UPLOAD_DIR, file.filename)
     with open(file_location, "wb") as f:
         f.write(await file.read())
+    extracted_text = extract_text_from_file(file_location, file.content_type)
     # Add file message to chat history if session is available
     if request is not None:
         history = request.session.get("history", [])
@@ -128,11 +159,19 @@ async def upload_file(file: UploadFile = File(...), request: Request = None):
             "file": {"filename": file.filename, "content_type": file.content_type},
             "timestamp": now_str()
         })
+        # Inject extracted text as a user message if available
+        if extracted_text:
+            truncated = extracted_text[:MAX_FILE_CHARS]
+            history.append({
+                "role": "user",
+                "content": f"[File: {file.filename}]\n\n{truncated}",
+                "timestamp": now_str()
+            })
         request.session["history"] = history
-    return JSONResponse({"filename": file.filename, "content_type": file.content_type})
+    return JSONResponse({"filename": file.filename, "content_type": file.content_type, "extracted": bool(extracted_text)})
 
 @app.get("/chat/stream")
-async def chat_stream(request: Request, user_message: str = None):
+async def chat_stream(request: Request, user_message: str = None, system_prompt: str = Query(None), user_name: str = Query(None), user_avatar: str = Query(None)):
     """Stream chat responses using Server-Sent Events."""
     try:
         if not user_message:
@@ -146,6 +185,9 @@ async def chat_stream(request: Request, user_message: str = None):
         
         # Make sure history has proper message format for DeepSeek API
         formatted_history = []
+        # Inject system prompt if provided
+        if system_prompt:
+            formatted_history.append({"role": "system", "content": system_prompt})
         for msg in history:
             if "role" in msg and "content" in msg:
                 # Skip file messages for the API call, as DeepSeek doesn't support them natively
@@ -153,30 +195,21 @@ async def chat_stream(request: Request, user_message: str = None):
                     formatted_history.append({"role": msg["role"], "content": msg["content"]})
                 else:
                     print(f"DEBUG: chat_stream - Skipping file message in history: {msg}")
-        
         print(f"DEBUG: chat_stream - Formatted history for API: {json.dumps(formatted_history)}")
-        
         # Add the current user message
         user_msg = {"role": "user", "content": user_message, "timestamp": now_str()}
         formatted_history.append({"role": "user", "content": user_message})
-        
         # Add to session history with timestamp
         history.append(user_msg)
         request.session["history"] = history
-        
         async def event_generator():
-            # Log the current user message being processed
             print(f"DEBUG: chat_stream - Processing user message: '{user_msg['content']}'")
-            
             yield f"data: {json.dumps({'type': 'user_msg_received', 'message': user_msg})}\n\n"
             await asyncio.sleep(0.1)
-            
             assistant_msg = {"role": "assistant", "content": "", "timestamp": now_str()}
             yield f"data: {json.dumps({'type': 'assistant_msg_start', 'message': assistant_msg})}\n\n"
-            
             try:
                 collected_content = []
-                # Use properly formatted history for DeepSeek API
                 async for content_chunk in client.async_chat_completion_stream(
                     formatted_history, 
                     model="deepseek-chat",  # Explicitly set the model
@@ -186,11 +219,8 @@ async def chat_stream(request: Request, user_message: str = None):
                     print(f"DEBUG: chat_stream - Received chunk from DeepSeek: '{content_chunk}'") # Critical log
                     collected_content.append(content_chunk)
                     yield f"data: {json.dumps({'type': 'content_chunk', 'chunk': content_chunk})}\n\n"
-                    
                 complete_msg = {"role": "assistant", "content": ''.join(collected_content), "timestamp": now_str()}
                 print(f"DEBUG: chat_stream - Streaming complete. Full AI content: '{complete_msg['content']}'")
-                
-                # Logic to update history (as previously refined)
                 last_user_msg_idx = -1
                 for i in range(len(history) - 1, -1, -1):
                     if history[i]["role"] == "user":
@@ -202,13 +232,11 @@ async def chat_stream(request: Request, user_message: str = None):
                     history.append(complete_msg)
                 request.session["history"] = history
                 print(f"DEBUG: chat_stream - Session history updated (last 3): {history[-3:]}")
-                
                 yield f"data: {json.dumps({'type': 'complete', 'message': complete_msg})}\n\n"
             except Exception as e:
                 error_msg = str(e)
                 print(f"ERROR: chat_stream - Exception during DeepSeek stream: {error_msg}\nTraceback: {traceback.format_exc()}")
                 yield f"data: {json.dumps({'type': 'error', 'error': error_msg})}\n\n"
-                
                 error_response_for_history = {"role": "assistant", "content": f"Error communicating with AI: {error_msg}", "timestamp": now_str()}
                 last_user_msg_idx = -1
                 for i in range(len(history) - 1, -1, -1):
@@ -221,7 +249,6 @@ async def chat_stream(request: Request, user_message: str = None):
                     history.append(error_response_for_history)
                 request.session["history"] = history
                 print(f"DEBUG: chat_stream - Session history updated after error (last 3): {history[-3:]}")
-        
         return StreamingResponse(event_generator(), media_type="text/event-stream")
     except Exception as e:
         print(f"ERROR: chat_stream - Outer exception: {str(e)}\nTraceback: {traceback.format_exc()}")

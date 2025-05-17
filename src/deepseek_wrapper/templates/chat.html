@@ -8,10 +8,50 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+    .modal-backdrop { position: fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:1000; display:none; }
+    .modal { position: fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; color:#222; border-radius:8px; box-shadow:0 2px 16px rgba(0,0,0,0.2); z-index:1001; min-width:320px; max-width:90vw; padding:2em 1.5em; display:none; }
+    .modal h2 { margin-bottom:1em; font-size:1.2em; }
+    .modal label { display:block; margin:0.5em 0 0.2em; font-weight:500; }
+    .modal input, .modal textarea { width:100%; margin-bottom:1em; padding:0.5em; border-radius:4px; border:1px solid #ccc; font-size:1em; }
+    .modal-actions { text-align:right; }
+    .modal-actions button { margin-left:0.5em; }
+    #scroll-bottom {
+        transition: opacity 0.2s;
+        opacity: 0;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        right: 2em;
+        bottom: 6em;
+        z-index: 10;
+    }
+    #scroll-bottom.visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    </style>
     <script>
     function scrollChat() {
-        var chat = document.getElementById('chat-history');
-        if (chat) chat.scrollTop = chat.scrollHeight;
+        const chatHistoryElem = document.getElementById('chat-history');
+        const scrollBottomBtn = document.getElementById('scroll-bottom');
+        // Hide if no messages or empty chat
+        if (!chatHistoryElem || chatHistoryElem.children.length === 0 || chatHistoryElem.querySelector('.empty-chat')) {
+            scrollBottomBtn.classList.remove('visible');
+            return;
+        }
+        // Show only if not at bottom
+        const isScrolledUp = chatHistoryElem.scrollTop < chatHistoryElem.scrollHeight - chatHistoryElem.clientHeight - 100;
+        if (isScrolledUp && chatHistoryElem.scrollHeight > chatHistoryElem.clientHeight) {
+            scrollBottomBtn.classList.add('visible');
+        } else {
+            scrollBottomBtn.classList.remove('visible');
+        }
     }
     function focusInput() {
         var input = document.getElementById('user_message');
@@ -187,19 +227,58 @@
     }
     
     function renderMarkdown(text) {
-        text = text.replace(/\n/g, '<br>');
-        // Simplified: In a real app, use a library like Marked.js or DOMPurify after Marked.js
-        text = text
-            .replace(/```(\w*?)<br>([\s\S]*?)<br>```/g, (match, lang, code) => `<pre><code class="language-${lang || ''}">${code.replace(/<br>/g, '\n')}</code></pre>`)
-            .replace(/`([^`]+?)`/g, '<code>$1</code>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-        return text;
+        // Use Marked.js for full markdown support
+        const html = marked.parse(text);
+        // Highlight code blocks after rendering
+        setTimeout(() => { if (window.hljs) hljs.highlightAll(); }, 0);
+        return html;
     }
+    // Settings modal logic
+    function openSettings() {
+        document.getElementById('modal-backdrop').style.display = 'block';
+        document.getElementById('settings-modal').style.display = 'block';
+        // Load from localStorage
+        document.getElementById('settings-username').value = localStorage.getItem('ds_username') || 'User';
+        document.getElementById('settings-avatar').value = localStorage.getItem('ds_avatar') || 'U';
+        document.getElementById('settings-system-prompt').value = localStorage.getItem('ds_system_prompt') || 'You are DeepSeek Chat, a helpful AI assistant.';
+    }
+    function closeSettings() {
+        document.getElementById('modal-backdrop').style.display = 'none';
+        document.getElementById('settings-modal').style.display = 'none';
+    }
+    function saveSettings() {
+        localStorage.setItem('ds_username', document.getElementById('settings-username').value);
+        localStorage.setItem('ds_avatar', document.getElementById('settings-avatar').value);
+        localStorage.setItem('ds_system_prompt', document.getElementById('settings-system-prompt').value);
+        document.getElementById('user_name_hidden').value = document.getElementById('settings-username').value;
+        document.getElementById('user_avatar_hidden').value = document.getElementById('settings-avatar').value;
+        document.getElementById('system_prompt_hidden').value = document.getElementById('settings-system-prompt').value;
+        closeSettings();
+    }
+    window.addEventListener('DOMContentLoaded', function() {
+        // ... existing code ...
+        // Set hidden fields from localStorage
+        document.getElementById('user_name_hidden').value = localStorage.getItem('ds_username') || 'User';
+        document.getElementById('user_avatar_hidden').value = localStorage.getItem('ds_avatar') || 'U';
+        document.getElementById('system_prompt_hidden').value = localStorage.getItem('ds_system_prompt') || 'You are DeepSeek Chat, a helpful AI assistant.';
+    });
     </script>
 </head>
 <body>
+    <div class="modal-backdrop" id="modal-backdrop" onclick="closeSettings()"></div>
+    <div class="modal" id="settings-modal">
+        <h2>Chat Settings</h2>
+        <label for="settings-username">Your Name</label>
+        <input id="settings-username" maxlength="32" />
+        <label for="settings-avatar">Avatar (letter or emoji)</label>
+        <input id="settings-avatar" maxlength="2" />
+        <label for="settings-system-prompt">System Prompt</label>
+        <textarea id="settings-system-prompt" rows="4"></textarea>
+        <div class="modal-actions">
+            <button onclick="closeSettings()">Cancel</button>
+            <button onclick="saveSettings()">Save</button>
+        </div>
+    </div>
     <div class="container">
         <header class="top-bar">
             <h1 class="app-title">DeepSeek Chat</h1>
@@ -208,6 +287,9 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     <span>Export</span>
                 </button>
+                <button id="settings-btn" class="theme-toggle" title="Settings" aria-label="Settings" onclick="openSettings()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 5 15.4a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 8c.14.31.22.65.22 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
                 <button id="theme-toggle" class="theme-toggle" title="Toggle theme (Alt+T)" aria-label="Toggle dark/light theme">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="light-icon"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dark-icon" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
@@ -215,16 +297,16 @@
             </div>
         </header>
         <main class="chat-container">
-            <div id="chat-history" class="chat-history">
+        <div id="chat-history" class="chat-history">
                 {% if messages %}
-                    {% for msg in messages %}
-                        <div class="msg-row {{ msg.role }}">
+            {% for msg in messages %}
+                <div class="msg-row {{ msg.role }}">
                             {% if msg.role == 'assistant' %}
                             <div class="avatar">
                                 <span class="avatar-letter">A</span>
                             </div>
                             {% endif %}
-                            <div class="bubble {{ msg.role }}-msg">
+                    <div class="bubble {{ msg.role }}-msg">
                                 <!-- <span class="role">{{ msg.role.title() }}</span> -->
                                 <span class="content">{{ msg.content_html|safe }}</span>
                                 <span class="timestamp">{{ msg.timestamp }}</span>
@@ -242,7 +324,7 @@
                             {% endif %}
                         </div>
                     {% endfor %}
-                {% else %}
+                        {% else %}
                     <div class="empty-chat">
                         <div class="empty-chat-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.056 3 11.61c0 1.64.506 3.192 1.397 4.512L3 20.25l5.25-1.837A8.963 8.963 0 0 0 12 20.25z"></path></svg>
@@ -250,7 +332,7 @@
                         <h2>Welcome to DeepSeek Chat</h2>
                         <p>Type a message or upload a file to begin.</p>
                     </div>
-                {% endif %}
+                        {% endif %}
                 {% if loading %}
                     <div class="msg-row assistant loading-placeholder">
                         <div class="avatar">
@@ -259,10 +341,10 @@
                         <div class="bubble assistant-msg loading-bubble">
                             <div class="typing-indicator">
                                 <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
-                            </div>
-                        </div>
                     </div>
-                {% endif %}
+                </div>
+                </div>
+            {% endif %}
             </div>
             <div id="scroll-bottom" class="scroll-bottom-btn" title="Scroll to bottom">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -271,6 +353,9 @@
 
         <form id="chat-form" method="post" onsubmit="sendChat(); return false;">
             <textarea id="user_message" name="user_message" placeholder="Type your message... (Shift+Enter for newline)" required rows="1" oninput="autoResizeTextarea(this)" onkeydown="handleKey(event)" aria-label="Message input"></textarea>
+            <input type="hidden" id="user_name_hidden" name="user_name" />
+            <input type="hidden" id="user_avatar_hidden" name="user_avatar" />
+            <input type="hidden" id="system_prompt_hidden" name="system_prompt" />
             <button id="send-btn" type="submit" {% if loading %}disabled{% endif %} aria-label="Send message">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
             </button>
@@ -428,10 +513,16 @@
     });
     
     function scrollChat() {
-        if (chatHistoryElem) chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
-        // Check if we need to show the scroll button after new message
+        const chatHistoryElem = document.getElementById('chat-history');
+        const scrollBottomBtn = document.getElementById('scroll-bottom');
+        // Hide if no messages or empty chat
+        if (!chatHistoryElem || chatHistoryElem.children.length === 0 || chatHistoryElem.querySelector('.empty-chat')) {
+            scrollBottomBtn.classList.remove('visible');
+            return;
+        }
+        // Show only if not at bottom
         const isScrolledUp = chatHistoryElem.scrollTop < chatHistoryElem.scrollHeight - chatHistoryElem.clientHeight - 100;
-        if (isScrolledUp && chatHistoryElem.scrollHeight > chatHistoryElem.clientHeight) { // Only if scrollable
+        if (isScrolledUp && chatHistoryElem.scrollHeight > chatHistoryElem.clientHeight) {
             scrollBottomBtn.classList.add('visible');
         } else {
             scrollBottomBtn.classList.remove('visible');
