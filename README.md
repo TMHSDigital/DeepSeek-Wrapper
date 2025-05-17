@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/TMHSDigital/DeepSeek-Wrapper/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TMHSDigital/DeepSeek-Wrapper/actions)
 [![Coverage Status](https://img.shields.io/badge/coverage-94%25-brightgreen)](https://github.com/TMHSDigital/DeepSeek-Wrapper)
-[![License](https://img.shields.io/github/license/TMHSDigital/DeepSeek-Wrapper)](LICENSE)
+[![License](https://img.shields.io/github/license/TMHSDigital/DeepSeek-Wrapper)](docs/LICENSE)
 [![Python Versions](https://img.shields.io/pypi/pyversions/requests.svg)](https://www.python.org/downloads/)
 
 [![Issues](https://img.shields.io/github/issues/TMHSDigital/DeepSeek-Wrapper)](https://github.com/TMHSDigital/DeepSeek-Wrapper/issues)
@@ -199,7 +199,7 @@ pytest --cov=src/deepseek_wrapper
 ```
 
 ## Contributing
-- See `CONTRIBUTING.md`
+- See [CONTRIBUTING.md](docs/CONTRIBUTING.md)
 - Run `pre-commit install` to enable hooks
 
 ## Links
@@ -208,4 +208,4 @@ pytest --cov=src/deepseek_wrapper
 - [GitHub Repo](https://github.com/TMHSDigital/DeepSeek-Wrapper)
 
 ## License
-Apache 2.0
+This project is licensed under the [Apache 2.0 License](docs/LICENSE).
