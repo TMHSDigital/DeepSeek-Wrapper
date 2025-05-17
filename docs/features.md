@@ -249,7 +249,11 @@ This user-friendly approach to tool configuration significantly improves the acc
 
 ### Tool Caching and Status Monitoring
 
-<div style="padding: 20px; background: #f0f7ff; border-radius: 8px; border-left: 4px solid #3498db; margin-top: 20px;">
+<div align="center">
+  <img src="images/tool-status-panel.png" alt="Tool status and caching panel in DeepSeek Wrapper UI" width="600"/>
+  <div style="font-size: 0.95em; color: #666; margin-top: 0.5em;"><i>Enhanced tool status and caching panel, showing per-tool status, cache stats, and management controls.</i></div>
+</div>
+
 The DeepSeek Wrapper includes an advanced tool caching and status monitoring system that enhances performance and provides comprehensive visibility into the tool ecosystem.
 
 Key features of the tool caching system:
@@ -273,5 +277,4 @@ This comprehensive monitoring and caching system improves both performance and r
 - **Better debugging**: Clear visibility into tool status helps troubleshoot issues
 - **Enhanced reliability**: Retries and error handling improve overall stability
 
-The entire system is accessible through an intuitive UI panel, allowing non-technical users to monitor and manage tool performance without developer assistance.
-</div> 
+The entire system is accessible through an intuitive UI panel, allowing non-technical users to monitor and manage tool performance without developer assistance. 

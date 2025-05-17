@@ -4,7 +4,10 @@ The DeepSeek Wrapper provides a modern, feature-rich chat interface for interact
 
 ## Interface Overview
 
-![UI Overview](images/ui-overview.png)
+<div align="center">
+  <img src="images/ui-overview.png" alt="DeepSeek Chat main UI overview" width="600"/>
+  <div style="font-size: 0.95em; color: #666; margin-top: 0.5em;"><i>Main chat interface layout, showing chat area, input, settings, file upload, and conversation history.</i></div>
+</div>
 
 The interface consists of several key components:
 - **Chat Area**: The main area where conversations are displayed
@@ -45,7 +48,10 @@ To provide context from a document:
 3. Once uploaded, the content will be processed and included in your next message
 4. You can reference the document in your query
 
-![File Upload](images/file-upload.png)
+<div align="center">
+  <img src="images/file-upload.png" alt="File upload UI in DeepSeek Chat" width="600"/>
+  <div style="font-size: 0.95em; color: #666; margin-top: 0.5em;"><i>File upload process and UI for providing document context.</i></div>
+</div>
 
 #### Supported File Types
 
@@ -87,7 +93,10 @@ The document content is automatically analyzed and included in the context for t
    - Configure system prompts
    - Adjust UI preferences
 
-![Settings Modal](images/settings-modal.png)
+<div align="center">
+  <img src="images/settings-modal.png" alt="Settings modal in DeepSeek Chat" width="600"/>
+  <div style="font-size: 0.95em; color: #666; margin-top: 0.5em;"><i>General settings modal for profile, avatar, and system prompt configuration.</i></div>
+</div>
 
 #### User Profile Options
 
@@ -149,7 +158,10 @@ The DeepSeek Wrapper includes several AI tools that can be configured through th
    - Enter API keys for tools that require external services
    - Configure additional settings for each tool (e.g., SMTP server for email)
 
-![Tools Configuration](images/tools-config.png)
+<div align="center">
+  <img src="images/tools-config.png" alt="Tools configuration tab in settings modal" width="600"/>
+  <div style="font-size: 0.95em; color: #666; margin-top: 0.5em;"><i>Tools tab in the settings modal, with toggles and API key fields for each tool.</i></div>
+</div>
 
 #### Available Tools
 
@@ -191,6 +203,11 @@ The AI will automatically use the appropriate tool when needed to answer your qu
 
 #### Tool Status and Caching
 
+<div align="center">
+  <img src="images/tool-status-panel.png" alt="Tool status and caching panel in DeepSeek Wrapper UI" width="600"/>
+  <div style="font-size: 0.95em; color: #666; margin-top: 0.5em;"><i>Enhanced tool status and caching panel, showing per-tool status, cache stats, and management controls.</i></div>
+</div>
+
 The DeepSeek Wrapper includes a comprehensive tool status monitoring system and caching mechanism. These features enhance performance and provide better visibility into the tool system:
 
 1. **Tool Status Panel**: The Tools tab includes a status panel showing:
@@ -204,8 +221,6 @@ The DeepSeek Wrapper includes a comprehensive tool status monitoring system and 
    - Configurable cache time-to-live (TTL) settings
    - Cache hit/miss statistics for performance monitoring
    - Automatic cleanup of expired cache entries
-
-![Tool Status Panel](images/tool-status-panel.png)
 
 The caching system provides several benefits:
 - Faster response times for repeated queries
