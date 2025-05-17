@@ -245,4 +245,33 @@ The tool configuration panel is accessible from the settings menu and provides a
 - Toggle controls for built-in tools that don't require API keys
 
 This user-friendly approach to tool configuration significantly improves the accessibility of advanced features, allowing non-technical users to fully utilize the AI's capabilities without developer assistance.
+</div>
+
+### Tool Caching and Status Monitoring
+
+<div style="padding: 20px; background: #f0f7ff; border-radius: 8px; border-left: 4px solid #3498db; margin-top: 20px;">
+The DeepSeek Wrapper includes an advanced tool caching and status monitoring system that enhances performance and provides comprehensive visibility into the tool ecosystem.
+
+Key features of the tool caching system:
+- **Intelligent caching**: Automatically caches tool results based on input parameters
+- **Configurable TTL**: Time-to-live settings define how long cached results remain valid
+- **Cache statistics**: Detailed hit/miss metrics for performance monitoring
+- **Automatic cleanup**: Expired cache entries are automatically removed
+- **Manual control**: Clear individual or all tool caches directly from the UI
+
+The status monitoring system provides:
+- **Real-time tool status**: See which tools are ready, in error state, or not configured
+- **API key validation**: Automatic checking of API key validity
+- **Usage monitoring**: Track when tools were last used
+- **Cache visibility**: View cache size and performance metrics for each tool
+- **Visual indicators**: Color-coded status badges show tool health at a glance
+
+This comprehensive monitoring and caching system improves both performance and reliability:
+- **Reduced API costs**: Fewer redundant API calls to external services
+- **Faster responses**: Cached results return instantly without external API calls
+- **Rate limit protection**: Minimizes chances of hitting API rate limits
+- **Better debugging**: Clear visibility into tool status helps troubleshoot issues
+- **Enhanced reliability**: Retries and error handling improve overall stability
+
+The entire system is accessible through an intuitive UI panel, allowing non-technical users to monitor and manage tool performance without developer assistance.
 </div> 

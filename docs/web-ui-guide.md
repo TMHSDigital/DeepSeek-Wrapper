@@ -189,6 +189,53 @@ Once tools are configured, you can use them in your conversations by asking ques
 
 The AI will automatically use the appropriate tool when needed to answer your questions.
 
+#### Tool Status and Caching
+
+The DeepSeek Wrapper includes a comprehensive tool status monitoring system and caching mechanism. These features enhance performance and provide better visibility into the tool system:
+
+1. **Tool Status Panel**: The Tools tab includes a status panel showing:
+   - Ready, error, and unconfigured tool counts
+   - Detailed status for each registered tool
+   - API key validation status
+   - Last usage information
+
+2. **Caching System**: Tools use an intelligent caching system to improve performance:
+   - Reduces redundant API calls for identical requests
+   - Configurable cache time-to-live (TTL) settings
+   - Cache hit/miss statistics for performance monitoring
+   - Automatic cleanup of expired cache entries
+
+![Tool Status Panel](images/tool-status-panel.png)
+
+The caching system provides several benefits:
+- Faster response times for repeated queries
+- Reduced API usage and associated costs
+- Less network traffic and lower latency
+- Protection against rate limiting on external APIs
+
+##### Managing Tool Caches
+
+You can manage the tool caching system directly from the UI:
+
+1. **View Cache Statistics**: See cache size, hit ratios, and history for each tool
+2. **Clear Individual Caches**: Each tool has a dedicated cache clear button
+3. **Clear All Caches**: Use the "Clear Tool Caches" button to reset all caches at once
+4. **Refresh Tool Status**: Update the status display to see the latest information
+
+> **Note**: Clearing the cache doesn't impact tool functionality but may result in slightly slower responses until the cache is rebuilt with new requests.
+
+##### Cache Settings
+
+The caching system uses these default settings:
+
+| Setting | Default Value | Description |
+|---------|---------------|-------------|
+| Cache Enabled | Yes | Whether caching is active for each tool |
+| Time-to-Live (TTL) | 300 seconds | How long cached results remain valid |
+| Cache Key | Request parameters | What determines a cache hit/miss |
+
+These settings provide an optimal balance between performance and freshness of information for most use cases.
+
 ### Conversation Management
 
 - **Starting a new conversation**: Click the "New Chat" button
