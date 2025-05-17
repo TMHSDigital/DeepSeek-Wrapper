@@ -15,5 +15,4 @@ build/
 .idea/
 .vscode/
 *.log 
-deepseek-docs.md
 project_prompt.md
