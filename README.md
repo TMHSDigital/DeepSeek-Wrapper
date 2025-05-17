@@ -14,7 +14,61 @@
 
 ---
 
-A modern, async/sync Python client for the DeepSeek LLM API. Supports completions, chat, retries, and robust error handling. Built for local dev, CI, and production.
+<div align="center">
+  <h3>A modern, async/sync Python client for the DeepSeek LLM API.</h3>
+  <p>Supports completions, chat, retries, and robust error handling. Built for local dev, CI, and production.</p>
+</div>
+
+<p align="center">
+  <img src="docs/images/ui-overview.png" alt="DeepSeek Wrapper UI" style="max-width: 800px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+</p>
+
+## Documentation
+
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <a href="docs/getting-started.md">
+        <b>Getting Started</b><br>
+        Quick setup guide
+      </a>
+    </td>
+    <td width="33%" align="center">
+      <a href="docs/web-ui-guide.md">
+        <b>Web UI Guide</b><br>
+        Guide to using the web interface
+      </a>
+    </td>
+    <td width="33%" align="center">
+      <a href="docs/features.md">
+        <b>Features</b><br>
+        Detailed feature list
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" align="center">
+      <a href="docs/api-reference.md">
+        <b>API Reference</b><br>
+        API documentation for developers
+      </a>
+    </td>
+    <td width="33%" align="center">
+      <a href="docs/deployment.md">
+        <b>Deployment Guide</b><br>
+        Deployment options and configurations
+      </a>
+    </td>
+    <td width="33%" align="center">
+      <a href="docs/faq.md">
+        <b>FAQ</b><br>
+        Frequently asked questions
+      </a>
+    </td>
+  </tr>
+</table>
+
+For DeepSeek AI model capabilities, see [DeepSeek documentation](docs/deepseek-docs.md).
 
 ## Version Progress
 
@@ -43,15 +97,35 @@ Below are screenshots showing the evolution of the DeepSeek Wrapper web UI and f
 -->
 
 ## Features
-- **Sync & async API**
-- **Text generation & chat completion**
-- **Session-based chat history in web UI**
-- **Markdown rendering in chat responses**
-- **Automatic retries with exponential backoff**
-- **Type hints throughout**
-- **.env and environment variable config**
-- **100% test coverage with pytest & mocks**
-- **Pre-commit hooks and CI ready**
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0;">
+  <div style="flex: 1; min-width: 250px; border-left: 4px solid #4A90E2; padding: 10px; background: #F5F9FF; margin: 5px 0;">
+    <h3 style="color: #4A90E2; margin-top: 0;">Modern API</h3>
+    <ul>
+      <li><b>Sync & async support</b></li>
+      <li><b>Type hints throughout</b></li>
+      <li><b>Clean error handling</b></li>
+    </ul>
+  </div>
+  
+  <div style="flex: 1; min-width: 250px; border-left: 4px solid #50C878; padding: 10px; background: #F5FFF7; margin: 5px 0;">
+    <h3 style="color: #50C878; margin-top: 0;">Advanced Web UI</h3>
+    <ul>
+      <li><b>Session-based chat history</b></li>
+      <li><b>Markdown rendering</b></li>
+      <li><b>File uploads & processing</b></li>
+    </ul>
+  </div>
+  
+  <div style="flex: 1; min-width: 250px; border-left: 4px solid #FF6B6B; padding: 10px; background: #FFF5F5; margin: 5px 0;">
+    <h3 style="color: #FF6B6B; margin-top: 0;">Production Ready</h3>
+    <ul>
+      <li><b>Automatic retries with backoff</b></li>
+      <li><b>100% test coverage</b></li>
+      <li><b>Environment variable config</b></li>
+    </ul>
+  </div>
+</div>
 
 ## Web UI (FastAPI)
 
@@ -72,12 +146,16 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 - Loading indicator while waiting for LLM
 - Error banner for API issues
 
+For a comprehensive guide to using the web interface, see the [Web UI Guide](docs/web-ui-guide.md).
+
 ## Installation
 
 ```bash
 pip install -r requirements.txt
 pip install -e .  # for local development
 ```
+
+For detailed installation instructions, see the [Getting Started Guide](docs/getting-started.md).
 
 ## Usage (Python)
 
@@ -95,12 +173,16 @@ async def main():
 # asyncio.run(main())
 ```
 
+For a complete API reference and advanced usage, see the [API Reference](docs/api-reference.md).
+
 ## Configuration
 - Set `DEEPSEEK_API_KEY` in your `.env` or environment
 - Optionally set `DEEPSEEK_BASE_URL`, `timeout`, `max_retries`
 - See `.env.example`
 
 **Default model:** `deepseek-chat` (per DeepSeek docs)
+
+For deployment options and environment configurations, see the [Deployment Guide](docs/deployment.md).
 
 ## API Reference
 - `DeepSeekClient.generate_text(prompt, **kwargs)` → str
