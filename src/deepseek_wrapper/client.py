@@ -158,8 +158,8 @@ class DeepSeekClient:
                             print(f"Error processing chunk: {e}")
                             continue
                 
-                # Return the full response joined together
-                return ''.join(collected_chunks)
+                # Instead of returning, just end the generator
+                # return ''.join(collected_chunks)  # This line causes the syntax error
         except httpx.HTTPStatusError as e:
             raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}")
         except DeepSeekAuthError:
