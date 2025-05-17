@@ -32,16 +32,7 @@ templates = Jinja2Templates(directory="src/deepseek_wrapper/templates")
 app.mount("/static", StaticFiles(directory="src/deepseek_wrapper/static"), name="static")
 
 # Initialize client with config validation
-try:
-    client_config = DeepSeekConfig()
-    # Log the API configuration (masked for security)
-    api_key = client_config.api_key
-    masked_key = api_key[:4] + "****" + api_key[-4:] if api_key and len(api_key) > 8 else "****"
-    logger.info(f"DeepSeek API Configuration: URL={client_config.base_url}, API Key={masked_key}")
-    client = DeepSeekClient(client_config)
-except Exception as e:
-    logger.error(f"Failed to initialize DeepSeek client: {e}")
-    raise
+try:    client_config = DeepSeekConfig()    # Log the API configuration (masked for security)    api_key = client_config.api_key    masked_key = api_key[:4] + "****" + api_key[-4:] if api_key and len(api_key) > 8 else "****"    logger.info(f"DeepSeek API Configuration: URL={client_config.base_url}, API Key={masked_key}")    client = DeepSeekClient(client_config)        # Register built-in tools    from deepseek_wrapper.tools import DateTimeTool, CalculatorTool, WebSearchTool, WeatherTool, EmailTool        # Register core tools    client.register_tool(DateTimeTool())    client.register_tool(CalculatorTool())        # Register tools that require API keys (if configured)    if os.getenv("SEARCH_API_KEY"):        client.register_tool(WebSearchTool())    if os.getenv("OPENWEATHERMAP_API_KEY"):        client.register_tool(WeatherTool())        # Register email tool (in dry run mode by default for safety)    # Set EMAIL_DRY_RUN=false to enable actual email sending    os.environ.setdefault("EMAIL_DRY_RUN", "true")    if os.getenv("EMAIL_USERNAME") and os.getenv("EMAIL_PASSWORD"):        email_tool = EmailTool(            template_dir=os.path.abspath("./email_templates")        )        client.register_tool(email_tool)        logger.info(f"Email tool registered with template directory: {email_tool.template_dir}")        logger.info(f"Email tool in dry run mode: {os.getenv('EMAIL_DRY_RUN')=='true'}")        logger.info(f"Available email templates: {list(email_tool.templates.keys())}")    else:        logger.info("Email tool not registered - missing EMAIL_USERNAME or EMAIL_PASSWORD")        # Log registered tools    logger.info(f"Registered tools: {client.list_tools()}")    except Exception as e:    logger.error(f"Failed to initialize DeepSeek client: {e}")    raise
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), '../../uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -85,40 +76,7 @@ async def home(request: Request):
     rendered = render_history(history)
     return templates.TemplateResponse("chat.html", {"request": request, "messages": rendered, "error": None, "loading": False})
 
-@app.post("/chat", response_class=HTMLResponse)
-async def chat(request: Request, user_message: str = Form(...)):
-    history = request.session.get("history", [])
-    history.append({"role": "user", "content": user_message, "timestamp": now_str()})
-    error = None
-    loading = True
-    try:
-        # Add real-time data to the conversation
-        formatted_history = []
-        
-        # Add system message with real-time data
-        realtime_data = get_realtime_info()
-        default_system_prompt = (
-            "You are a helpful AI assistant with real-time awareness. "
-            "You can access current date and time information when needed.\n\n"
-            f"Current date and time information:\n{realtime_data}"
-        )
-        formatted_history.append({"role": "system", "content": default_system_prompt})
-        
-        # Add user messages
-        for msg in history:
-            if "role" in msg and "content" in msg and "file" not in msg:
-                formatted_history.append({"role": msg["role"], "content": msg["content"]})
-        
-        response = await client.async_chat_completion(formatted_history)
-        loading = False
-    except Exception as e:
-        response = f"Error: {e}"
-        error = str(e)
-        loading = False
-    history.append({"role": "assistant", "content": response, "timestamp": now_str()})
-    request.session["history"] = history
-    rendered = render_history(history)
-    return templates.TemplateResponse("chat.html", {"request": request, "messages": rendered, "error": error, "loading": loading})
+@app.post("/chat", response_class=HTMLResponse)async def chat(request: Request, user_message: str = Form(...)):    history = request.session.get("history", [])    history.append({"role": "user", "content": user_message, "timestamp": now_str()})    error = None    loading = True    try:        # Add real-time data to the conversation        formatted_history = []                # Add system message with real-time data        realtime_data = get_realtime_info()        default_system_prompt = (            "You are a helpful AI assistant with real-time awareness. "            "You can access current date and time information when needed.\n\n"            f"Current date and time information:\n{realtime_data}"        )        formatted_history.append({"role": "system", "content": default_system_prompt})                # Add user messages        for msg in history:            if "role" in msg and "content" in msg and "file" not in msg:                formatted_history.append({"role": msg["role"], "content": msg["content"]})                # Use tools if available        if client.list_tools():            # Use function calling with tools            logger.info(f"Using chat completion with tools: {client.list_tools()}")            response, tool_usage = await client.async_chat_completion_with_tools(                formatted_history,                max_tools_to_use=3,                tool_choice="auto",                temperature=0.7,                max_tokens=1024            )                        # Log tool usage if any            if tool_usage:                logger.info(f"Tools used in conversation: {tool_usage}")        else:            # Fall back to regular chat completion            logger.info("Using regular chat completion (no tools registered)")            response = await client.async_chat_completion(formatted_history)                    loading = False    except Exception as e:        response = f"Error: {e}"        error = str(e)        logger.error(f"Error in chat: {str(e)}", exc_info=True)        loading = False    history.append({"role": "assistant", "content": response, "timestamp": now_str()})    request.session["history"] = history    rendered = render_history(history)    return templates.TemplateResponse("chat.html", {"request": request, "messages": rendered, "error": error, "loading": loading})
 
 @app.post("/completions", response_class=HTMLResponse)
 async def completions(request: Request, prompt: str = Form(...)):

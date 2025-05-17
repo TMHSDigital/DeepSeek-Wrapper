@@ -1,0 +1,16 @@
+NOTIFICATION: {{subject}}
+
+Dear {{name}},
+
+This is an automated notification from DeepSeek AI.
+
+{{message}}
+
+Time: {{time}}
+Reference: {{reference_id}}
+
+---
+This is an automated message, please do not reply directly to this email.
+If you need assistance, please contact support@example.com.
+
+DeepSeek AI © 2025 

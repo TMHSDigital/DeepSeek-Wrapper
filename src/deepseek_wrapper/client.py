@@ -120,7 +120,7 @@ class DeepSeekClient:
             try:
                 # Parse arguments
                 args = {}
-                for arg in re.findall(r'(\w+)\s*=\s*(?:"([^"]*)"|\\'([^\\']*)\\'|(\d+(?:\.\d+)?))', args_str):
+                for arg in re.findall(r'(\w+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|(\d+(?:\.\d+)?))', args_str):
                     arg_name = arg[0]
                     # Use the first non-empty value (out of the string or number matches)
                     arg_value = next((val for val in arg[1:] if val), "")
