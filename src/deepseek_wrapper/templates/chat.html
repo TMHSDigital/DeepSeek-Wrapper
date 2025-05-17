@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <title>DeepSeek Chat</title>
@@ -57,10 +57,12 @@
 <body>
     <div class="container">
         <h1>DeepSeek Chat</h1>
+        <button id="theme-toggle" class="theme-toggle" title="Toggle theme (Alt+T)" aria-label="Toggle dark/light theme">☀️</button>
+        <button id="export-btn" class="export-btn" title="Export conversation (Alt+E)" aria-label="Export conversation">📥 Export</button>
         <form id="chat-form" method="post" action="/chat" autocomplete="off" onsubmit="sendChat(); return false;">
-            <textarea id="user_message" name="user_message" placeholder="Type your message... (Enter to send, Shift+Enter for newline)" required rows="2" onkeydown="handleKey(event)"></textarea>
-            <button id="send-btn" type="submit" {% if loading %}disabled{% endif %}>Send</button>
-            <button type="button" onclick="document.getElementById('reset-form').submit();" class="reset-btn">Reset</button>
+            <textarea id="user_message" name="user_message" placeholder="Type your message... (Enter to send, Shift+Enter for newline)" required rows="2" onkeydown="handleKey(event)" aria-label="Message input"></textarea>
+            <button id="send-btn" type="submit" {% if loading %}disabled{% endif %} aria-label="Send message">Send</button>
+            <button type="button" onclick="document.getElementById('reset-form').submit();" class="reset-btn" aria-label="Reset conversation">Reset</button>
         </form>
         <form id="reset-form" method="post" action="/reset" style="display:none;"></form>
         <form id="upload-form" enctype="multipart/form-data" style="margin-top:10px;">
@@ -70,34 +72,55 @@
             <span id="upload-status" style="margin-left:10px;"></span>
             <div id="image-preview" style="margin-top:10px;"></div>
         </form>
-        <div id="chat-history" class="chat-history">
-            {% for msg in messages %}
-                <div class="msg-row {{ msg.role }}">
-                    <div class="avatar">
-                        <span class="avatar-letter">{% if msg.role == 'user' %}U{% else %}A{% endif %}</span>
+        <div id="upload-area" class="upload-area">
+            <div class="upload-area-icon">📤</div>
+            <div class="upload-area-text">Drop files here to upload</div>
+        </div>
+        <div class="chat-container">
+            <div id="chat-history" class="chat-history">
+                {% if messages %}
+                    {% for msg in messages %}
+                        <div class="msg-row {{ msg.role }}">
+                            <div class="avatar">
+                                <span class="avatar-letter">{% if msg.role == 'user' %}U{% else %}A{% endif %}</span>
+                            </div>
+                            <div class="bubble {{ msg.role }}-msg">
+                                <span class="role">{{ msg.role.title() }}</span>
+                                <span class="timestamp">{{ msg.timestamp }}</span><br>
+                                <span class="content" style="display:block;">{{ msg.content_html|safe }}</span>
+                                <div class="message-actions">
+                                    <button class="action-btn copy-btn" onclick="copyMessage(this)">
+                                        <span class="action-tooltip">Copy</span>
+                                        📋
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-chat">
+                        <div class="empty-chat-icon">💬</div>
+                        <h2>Welcome to DeepSeek Chat</h2>
+                        <p>Type a message below to start a conversation with the AI assistant. You can also upload files or paste images to share them.</p>
                     </div>
-                    <div class="bubble {{ msg.role }}-msg">
-                        <span class="role">{{ msg.role.title() }}</span>
-                        <span class="timestamp">{{ msg.timestamp }}</span><br>
-                        <span class="content" style="display:block;">{{ msg.content_html|safe }}</span>
-                    </div>
-                </div>
-            {% endfor %}
-            {% if loading %}
-                <div class="msg-row assistant">
-                    <div class="avatar">
-                        <span class="avatar-letter">A</span>
-                    </div>
-                    <div class="bubble assistant-msg loading-bubble">
-                        <div class="typing-indicator">
-                            <span class="typing-dot"></span>
-                            <span class="typing-dot"></span>
-                            <span class="typing-dot"></span>
+                {% endif %}
+                {% if loading %}
+                    <div class="msg-row assistant">
+                        <div class="avatar">
+                            <span class="avatar-letter">A</span>
+                        </div>
+                        <div class="bubble assistant-msg loading-bubble">
+                            <div class="typing-indicator">
+                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            {% endif %}
-            <div id="sending-status" class="sending-indicator" style="display:none;"></div>
+                {% endif %}
+                <div id="sending-status" class="sending-indicator" style="display:none;"></div>
+            </div>
+            <div id="scroll-bottom" class="scroll-bottom-btn" title="Scroll to bottom">↓</div>
         </div>
         {% if error %}
         <div class="error-banner">{{ error }}</div>
@@ -199,6 +222,184 @@
     window.addEventListener('DOMContentLoaded', function() {
         var sendingStatus = document.getElementById('sending-status');
         if (sendingStatus) sendingStatus.style.display = 'none';
+    });
+    const chatHistory = document.getElementById('chat-history');
+    const scrollBottomBtn = document.getElementById('scroll-bottom');
+    
+    // Show/hide scroll button based on scroll position
+    chatHistory.addEventListener('scroll', function() {
+        const isScrolledUp = chatHistory.scrollTop < chatHistory.scrollHeight - chatHistory.clientHeight - 50;
+        if (isScrolledUp) {
+            scrollBottomBtn.classList.add('visible');
+        } else {
+            scrollBottomBtn.classList.remove('visible');
+        }
+    });
+    
+    // Scroll to bottom when button is clicked
+    scrollBottomBtn.addEventListener('click', function() {
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    });
+    
+    // Scroll to bottom on load
+    function scrollChat() {
+        if (chatHistory) chatHistory.scrollTop = chatHistory.scrollHeight;
+        
+        // Check if we need to show the scroll button
+        const isScrolledUp = chatHistory.scrollTop < chatHistory.scrollHeight - chatHistory.clientHeight - 50;
+        if (isScrolledUp) {
+            scrollBottomBtn.classList.add('visible');
+        }
+    }
+    // Copy message content
+    function copyMessage(button) {
+        const content = button.closest('.bubble').querySelector('.content').innerText;
+        navigator.clipboard.writeText(content).then(function() {
+            // Show temporary success indicator
+            const tooltip = button.querySelector('.action-tooltip');
+            tooltip.textContent = 'Copied!';
+            setTimeout(function() {
+                tooltip.textContent = 'Copy';
+            }, 2000);
+        }).catch(function(err) {
+            console.error('Could not copy text: ', err);
+        });
+    }
+    // Theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
+    
+    // Check for saved theme preference or use preferred color scheme
+    const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    setTheme(savedTheme);
+    
+    themeToggle.addEventListener('click', function() {
+        const currentTheme = htmlElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+    });
+    
+    function setTheme(theme) {
+        htmlElement.setAttribute('data-theme', theme);
+        themeToggle.textContent = theme === 'light' ? '☀️' : '🌙';
+        themeToggle.title = theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
+    }
+    // Add JavaScript for drag-and-drop and export functionality
+    // Drag and drop file upload
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('file-input');
+    
+    // Show upload area when dragging over the page
+    document.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadArea.classList.add('visible');
+    });
+    
+    document.addEventListener('dragleave', function(e) {
+        if (!e.relatedTarget || e.relatedTarget.tagName === 'HTML') {
+            uploadArea.classList.remove('visible');
+        }
+    });
+    
+    // Handle drop
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('drag-over');
+    });
+    
+    uploadArea.addEventListener('dragleave', function(e) {
+        this.classList.remove('drag-over');
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        this.classList.remove('visible');
+        
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            // Trigger the upload process
+            const event = new Event('change');
+            fileInput.dispatchEvent(event);
+            document.getElementById('upload-form').requestSubmit();
+        }
+    });
+    
+    // Click on upload area to select files
+    uploadArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    // Export conversation
+    document.getElementById('export-btn').addEventListener('click', function() {
+        const messages = Array.from(document.querySelectorAll('.msg-row'));
+        let text = '# DeepSeek Chat Export\n\n';
+        
+        messages.forEach(msg => {
+            const role = msg.querySelector('.role').textContent;
+            const content = msg.querySelector('.content').textContent;
+            const time = msg.querySelector('.timestamp').textContent;
+            
+            text += `## ${role} (${time})\n\n${content}\n\n`;
+        });
+        
+        // Create download link
+        const blob = new Blob([text], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `deepseek-chat-export-${new Date().toISOString().slice(0, 10)}.md`;
+        a.click();
+        
+        // Clean up
+        URL.revokeObjectURL(url);
+    });
+    
+    // Add keyboard shortcut handling
+    document.addEventListener('keydown', function(e) {
+        // Alt+T for theme toggle
+        if (e.altKey && e.key === 't') {
+            e.preventDefault();
+            document.getElementById('theme-toggle').click();
+        }
+        
+        // Alt+E for export
+        if (e.altKey && e.key === 'e') {
+            e.preventDefault();
+            document.getElementById('export-btn').click();
+        }
+        
+        // Alt+U to focus upload
+        if (e.altKey && e.key === 'u') {
+            e.preventDefault();
+            document.getElementById('file-input').focus();
+        }
+        
+        // Alt+S to focus on message input
+        if (e.altKey && e.key === 's') {
+            e.preventDefault();
+            document.getElementById('user_message').focus();
+        }
+        
+        // Escape to dismiss the upload area if visible
+        if (e.key === 'Escape') {
+            const uploadArea = document.getElementById('upload-area');
+            if (uploadArea.classList.contains('visible')) {
+                uploadArea.classList.remove('visible');
+            }
+        }
+    });
+    
+    // Add focus indicator for keyboard navigation
+    document.addEventListener('keyup', function(e) {
+        if (e.key === 'Tab') {
+            document.body.classList.add('keyboard-nav');
+        }
+    });
+    
+    document.addEventListener('mousedown', function() {
+        document.body.classList.remove('keyboard-nav');
     });
     </script>
 </body>
