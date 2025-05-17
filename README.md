@@ -127,6 +127,14 @@ Below are screenshots showing the evolution of the DeepSeek Wrapper web UI and f
         <li><b>Tool configuration UI</b></li>
       </ul>
     </div>
+    <div style="flex: 1; min-width: 250px; border-left: 4px solid #FF8C42; padding: 10px; background: #FFF4EC; margin: 5px 0;">
+      <h3 style="color: #FF8C42; margin-top: 0;">Coming Soon</h3>
+      <ul>
+        <li><b>Model selection (in development)</b></li>
+        <li><b>Custom model parameters</b></li>
+        <li><b>Model-specific optimizations</b></li>
+      </ul>
+    </div>
 </div>
 
 ## Web UI (FastAPI)
@@ -263,3 +271,19 @@ pytest --cov=src/deepseek_wrapper
 
 ## License
 ## Contributing
+
+## Model Selection (Coming Soon)
+
+> **Note:** The model selection feature is currently under development and **IS NOT functional yet**. 
+
+The DeepSeek Wrapper will soon support switching between different DeepSeek models:
+- deepseek-chat
+- deepseek-coder
+- deepseek-llm-67b-chat
+- deepseek-llm-7b-chat
+- deepseek-reasoner
+
+When complete, users will be able to:
+1. Select different models through the settings panel
+2. See the currently active model in the UI
+3. Configure model-specific settings, such as extracting only final answers from reasoning models

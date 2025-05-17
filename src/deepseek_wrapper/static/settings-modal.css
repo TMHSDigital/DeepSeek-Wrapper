@@ -931,4 +931,33 @@ input:checked + .slider:before {
     margin-left: 1.5rem;
     margin-top: 0.25rem;
     line-height: 1.4;
+}
+
+/* Development notice styling */
+.development-notice {
+    display: flex;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+}
+
+.notice-icon {
+    font-size: 18px;
+    margin-right: 12px;
+    line-height: 1;
+}
+
+.notice-content strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #856404;
+}
+
+.notice-content p {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
 } 

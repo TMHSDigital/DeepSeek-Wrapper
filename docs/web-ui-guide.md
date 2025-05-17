@@ -251,6 +251,37 @@ The caching system uses these default settings:
 
 These settings provide an optimal balance between performance and freshness of information for most use cases.
 
+#### Model Selection (Coming Soon)
+
+<div align="center">
+  <div style="font-size: 0.95em; color: #666; margin-top: 0.5em;"><i>⚠️ The model selection feature is currently under development and is not functional yet. ⚠️</i></div>
+</div>
+
+The DeepSeek Wrapper will soon support model selection, allowing you to choose from various DeepSeek models with different capabilities:
+
+1. **Supported Models**: The system will support switching between:
+   - deepseek-chat: General-purpose chat model (default)
+   - deepseek-coder: Specialized for code generation and programming tasks
+   - deepseek-llm-67b-chat: Larger model with enhanced capabilities
+   - deepseek-llm-7b-chat: Smaller, faster model for simpler tasks
+   - deepseek-reasoner: Model with enhanced reasoning capabilities
+
+2. **Model Settings Panel**: A dedicated tab in the settings modal will offer:
+   - Simple model selection UI
+   - Model-specific configuration options
+   - Performance and capability comparisons
+
+3. **Model-Specific Features**: Special features tailored to each model:
+   - For reasoning models: Option to show only final answers after processing
+   - For code models: Enhanced syntax highlighting and code explanations
+   - For larger models: Warning about potential longer response times
+
+4. **Model Indicator**: A visual indicator in the UI will show which model is currently active
+
+<div align="center">
+  <div style="font-size: 0.95em; color: #FF6B6B; margin-top: 0.5em;"><i>Note: Configuration changes made in the Model tab will not affect the application until this feature is fully implemented.</i></div>
+</div>
+
 ### Conversation Management
 
 - **Starting a new conversation**: Click the "New Chat" button
