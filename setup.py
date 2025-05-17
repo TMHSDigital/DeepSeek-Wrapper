@@ -4,9 +4,9 @@ setup(
     name="deepseek-wrapper",
     version="0.1.0",
     description="Python wrapper for DeepSeek LLM API (local and remote)",
-    author="Your Name",
-    author_email="your@email.com",
-    url="https://github.com/yourusername/deepseek-wrapper",
+    author="TM Hospitality Strategies",
+    author_email="email@info.com",
+    url="https://github.com/TMHSDigital/deepseek-wrapper",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
@@ -17,7 +17,7 @@ setup(
     include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: Apache 2.0",
         "Operating System :: OS Independent",
     ],
 ) 
