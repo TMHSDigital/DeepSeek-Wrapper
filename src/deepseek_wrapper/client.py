@@ -1,8 +1,12 @@
-from typing import Any, Dict, Optional, Union
+from typing import AsyncGenerator, Dict, List, Optional, Union, Any
 from .config import DeepSeekConfig
 from .errors import DeepSeekAPIError, DeepSeekAuthError
 from .utils import retry
 import httpx
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DeepSeekClient:
     """Client for interacting with DeepSeek LLM API."""
@@ -10,6 +14,27 @@ class DeepSeekClient:
         self.config = config or DeepSeekConfig()
         self._client = httpx.Client(timeout=self.config.timeout)
         self._async_client = httpx.AsyncClient(timeout=self.config.timeout)
+        self._headers = {
+            "Authorization": f"Bearer {self.config.api_key}",
+            "Content-Type": "application/json",
+        }
+
+    def __del__(self):
+        """Cleanup resources when the client is garbage collected."""
+        self.close()
+
+    def close(self):
+        """Close the synchronous client."""
+        if hasattr(self, '_client') and self._client:
+            self._client.close()
+
+    async def aclose(self):
+        """Close the asynchronous client."""
+        if hasattr(self, '_async_client') and self._async_client:
+            await self._async_client.aclose()
+
+    def _update_headers(self):
+        """Update headers if API key changes."""
         self._headers = {
             "Authorization": f"Bearer {self.config.api_key}",
             "Content-Type": "application/json",
@@ -33,11 +58,11 @@ class DeepSeekClient:
             data = resp.json()
             return data["choices"][0]["text"] if "choices" in data else data
         except httpx.HTTPStatusError as e:
-            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}")
+            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}") from e
         except DeepSeekAuthError:
             raise
         except Exception as e:
-            raise DeepSeekAPIError(str(e))
+            raise DeepSeekAPIError(str(e)) from e
 
     @retry()
     async def async_generate_text(self, prompt: str, **kwargs) -> str:
@@ -57,14 +82,14 @@ class DeepSeekClient:
             data = resp.json()
             return data["choices"][0]["text"] if "choices" in data else data
         except httpx.HTTPStatusError as e:
-            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}")
+            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}") from e
         except DeepSeekAuthError:
             raise
         except Exception as e:
-            raise DeepSeekAPIError(str(e))
+            raise DeepSeekAPIError(str(e)) from e
 
     @retry()
-    def chat_completion(self, messages: list, **kwargs) -> str:
+    def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> str:
         """Synchronously get chat completion from DeepSeek."""
         payload = {
             "model": kwargs.get("model", "deepseek-chat"),
@@ -81,14 +106,14 @@ class DeepSeekClient:
             data = resp.json()
             return data["choices"][0]["message"]["content"] if "choices" in data else data
         except httpx.HTTPStatusError as e:
-            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}")
+            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}") from e
         except DeepSeekAuthError:
             raise
         except Exception as e:
-            raise DeepSeekAPIError(str(e))
+            raise DeepSeekAPIError(str(e)) from e
 
     @retry()
-    async def async_chat_completion(self, messages: list, **kwargs) -> str:
+    async def async_chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> str:
         """Asynchronously get chat completion from DeepSeek."""
         payload = {
             "model": kwargs.get("model", "deepseek-chat"),
@@ -105,15 +130,19 @@ class DeepSeekClient:
             data = resp.json()
             return data["choices"][0]["message"]["content"] if "choices" in data else data
         except httpx.HTTPStatusError as e:
-            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}")
+            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}") from e
         except DeepSeekAuthError:
             raise
         except Exception as e:
-            raise DeepSeekAPIError(str(e))
+            raise DeepSeekAPIError(str(e)) from e
 
     @retry()
-    async def async_chat_completion_stream(self, messages: list, **kwargs) -> str:
-        """Stream chat completion from DeepSeek."""
+    async def async_chat_completion_stream(self, messages: List[Dict[str, str]], **kwargs) -> AsyncGenerator[str, None]:
+        """Stream chat completion from DeepSeek.
+        
+        Returns:
+            AsyncGenerator that yields content chunks as they arrive.
+        """
         payload = {
             "model": kwargs.get("model", "deepseek-chat"),
             "messages": messages,
@@ -122,47 +151,38 @@ class DeepSeekClient:
             **{k: v for k, v in kwargs.items() if k not in ("model", "max_tokens", "stream")},
         }
         url = f"{self.config.base_url}/chat/completions"
+        logger.debug(f"Streaming request to DeepSeek API: URL={url}, payload={json.dumps(payload, indent=2)}")
         try:
             async with self._async_client.stream('POST', url, json=payload, headers=self._headers) as resp:
                 if resp.status_code == 401:
                     raise DeepSeekAuthError("Invalid or missing API key.")
+                logger.debug(f"DeepSeek API response status: {resp.status_code}")
+                logger.debug(f"DeepSeek API response headers: {resp.headers}")
                 resp.raise_for_status()
-                
-                # Process the streaming response
-                collected_chunks = []
+                buffer = ""
                 async for chunk in resp.aiter_text():
-                    if chunk.strip():
-                        # Parse the chunk (might need to adjust based on DeepSeek's actual streaming format)
-                        # Assuming format is similar to OpenAI's format
-                        if chunk.startswith('data: '):
-                            chunk = chunk[6:]  # Remove 'data: ' prefix
-                        
-                        # Check for the end of the stream
-                        if chunk.strip() == '[DONE]':
-                            break
-                        
+                    buffer += chunk
+                    while "\n" in buffer:
+                        line, buffer = buffer.split("\n", 1)
+                        line = line.strip()
+                        if not line or not line.startswith("data: "):
+                            continue
+                        data = line[6:]
+                        if data.strip() == "[DONE]":
+                            return
                         try:
-                            import json
-                            chunk_data = json.loads(chunk)
-                            # Extract the delta content from the chunk response
+                            chunk_data = json.loads(data)
                             if 'choices' in chunk_data and len(chunk_data['choices']) > 0:
-                                if 'delta' in chunk_data['choices'][0] and 'content' in chunk_data['choices'][0]['delta']:
-                                    content = chunk_data['choices'][0]['delta']['content']
-                                    collected_chunks.append(content)
+                                delta = chunk_data['choices'][0].get('delta', {})
+                                content = delta.get('content')
+                                if content:
                                     yield content
-                        except json.JSONDecodeError:
-                            # Skip if it's not valid JSON
-                            continue
                         except Exception as e:
-                            # Log any other errors but continue
-                            print(f"Error processing chunk: {e}")
+                            logger.error(f"Error processing chunk: {e}")
                             continue
-                
-                # Instead of returning, just end the generator
-                # return ''.join(collected_chunks)  # This line causes the syntax error
         except httpx.HTTPStatusError as e:
-            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}")
+            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}") from e
         except DeepSeekAuthError:
             raise
         except Exception as e:
-            raise DeepSeekAPIError(str(e)) 
+            raise DeepSeekAPIError(str(e)) from e 

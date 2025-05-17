@@ -103,8 +103,12 @@
                                     <span class="avatar-letter">A</span>
                                 </div>
                                 <div class="bubble assistant-msg">
-                                    <span class="content streaming-content"></span>
-                                    <span class="timestamp">${data.message.timestamp}</span>
+                                    <span class="content streaming-content" style="display: block;">
+                                        <div class="typing-indicator">
+                                            <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+                                        </div>
+                                    </span>
+                                    <span class="timestamp"></span>
                                      <div class="message-actions">
                                         <button class="action-btn copy-btn" onclick="copyMessage(this)" aria-label="Copy message">
                                             <span class="action-tooltip">Copy</span>
@@ -115,15 +119,17 @@
                             </div>
                         `;
                         chatHistory.insertAdjacentHTML('beforeend', assistantMsgHtml);
-                        currentAssistantBubble = chatHistory.lastElementChild.querySelector('.bubble');
-                        assistantMsgElement = currentAssistantBubble.querySelector('.streaming-content');
-                        // Update timestamp after bubble is created
-                        currentAssistantBubble.querySelector('.timestamp').textContent = data.message.timestamp;
+                        const newAssistantRow = chatHistory.lastElementChild;
+                        currentAssistantBubble = newAssistantRow.querySelector('.bubble.assistant-msg');
+                        assistantMsgElement = currentAssistantBubble.querySelector('.content.streaming-content');
                         scrollChat();
                         break;
                         
                     case 'content_chunk':
                         if (assistantMsgElement) {
+                            if (assistantMsgElement.querySelector('.typing-indicator')) {
+                                assistantMsgElement.innerHTML = ''; 
+                            }
                             const chunk = data.chunk;
                             assistantMsgElement.innerHTML += chunk.replace(/\n/g, '<br>');
                             scrollChat();
@@ -133,6 +139,9 @@
                     case 'complete':
                         eventSource.close();
                         if (assistantMsgElement) {
+                            if (assistantMsgElement.querySelector('.typing-indicator')) {
+                                assistantMsgElement.innerHTML = '';
+                            }
                             const finalContent = renderMarkdown(data.message.content);
                             assistantMsgElement.innerHTML = finalContent;
                             assistantMsgElement.classList.remove('streaming-content');
