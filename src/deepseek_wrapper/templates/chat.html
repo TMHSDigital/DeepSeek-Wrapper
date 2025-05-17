@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DeepSeek Chat</title>
+    <title>DeepSeek Wrapper</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
@@ -111,7 +111,7 @@
                 switch(data.type) {
                     case 'user_msg_received':
                         const userMsgHtml = `
-                            <div class="msg-row user">
+                            <div class="msg-row user" data-timestamp="${Date.now()}">
                                 <div class="bubble user-msg">
                                     <span class="content">${data.message.content.replace(/\n/g, '<br>')}</span>
                                     <span class="timestamp">${data.message.timestamp}</span>
@@ -123,19 +123,24 @@
                                     </div>
                                 </div>
                                 <div class="avatar">
-                                    <span class="avatar-letter">U</span>
+                                    <span class="avatar-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                    </span>
                                 </div>
                             </div>
                         `;
                         chatHistory.insertAdjacentHTML('beforeend', userMsgHtml);
+                        applyMessageGrouping();
                         scrollChat();
                         break;
                         
                     case 'assistant_msg_start':
                         const assistantMsgHtml = `
-                            <div class="msg-row assistant">
+                            <div class="msg-row assistant" data-timestamp="${Date.now()}">
                                 <div class="avatar">
-                                    <span class="avatar-letter">A</span>
+                                    <span class="avatar-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2"></path><path d="M10 8.484C13.207 7.894 14 11.138 14 12.5c0 .469-.003 1.22-.933 1.916"></path><path d="M15 9.5a3.5 3.5 0 0 0-3-2 3.5 3.5 0 0 0-3 2"></path><path d="M9.5 15a3.5 3.5 0 0 0 5 0"></path></svg>
+                                    </span>
                                 </div>
                                 <div class="bubble assistant-msg">
                                     <span class="content streaming-content" style="display: block;">
@@ -154,6 +159,7 @@
                             </div>
                         `;
                         chatHistory.insertAdjacentHTML('beforeend', assistantMsgHtml);
+                        applyMessageGrouping();
                         const newAssistantRow = chatHistory.lastElementChild;
                         currentAssistantBubble = newAssistantRow.querySelector('.bubble.assistant-msg');
                         assistantMsgElement = currentAssistantBubble.querySelector('.content.streaming-content');
@@ -184,6 +190,7 @@
                         if(currentAssistantBubble){
                             currentAssistantBubble.querySelector('.timestamp').textContent = data.message.timestamp;
                         }
+                        applyMessageGrouping();
                         sendingStatus.style.display = 'none';
                         btn.disabled = false;
                         focusInput();
@@ -222,11 +229,93 @@
     }
     
     function renderMarkdown(text) {
-        // Use Marked.js for full markdown support
+        // Configure Marked.js for enhanced markdown support
+        marked.setOptions({
+            gfm: true,
+            breaks: true,
+            headerIds: false,
+            langPrefix: 'language-',
+            highlight: function(code, lang) {
+                // Use highlight.js for code syntax highlighting
+                if (window.hljs) {
+                    const language = window.hljs.getLanguage(lang) ? lang : 'plaintext';
+                    return window.hljs.highlight(code, { language }).value;
+                }
+                return code;
+            }
+        });
+        
+        // Parse Markdown to HTML
         const html = marked.parse(text);
+        
+        // Add container for processing
+        const container = document.createElement('div');
+        container.innerHTML = html;
+        
+        // Add copy buttons to code blocks
+        container.querySelectorAll('pre').forEach(preBlock => {
+            // Create wrapper for the code block
+            const wrapper = document.createElement('div');
+            wrapper.className = 'code-block-wrapper';
+            
+            // Create copy button
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'code-copy-btn';
+            copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+            copyBtn.setAttribute('aria-label', 'Copy code');
+            
+            // Create tooltip
+            const tooltip = document.createElement('span');
+            tooltip.className = 'code-copy-tooltip';
+            tooltip.textContent = 'Copy';
+            copyBtn.appendChild(tooltip);
+            
+            // Add click event to copy the code
+            copyBtn.addEventListener('click', function() {
+                const code = preBlock.querySelector('code').textContent;
+                navigator.clipboard.writeText(code)
+                    .then(() => {
+                        tooltip.textContent = 'Copied!';
+                        setTimeout(() => {
+                            tooltip.textContent = 'Copy';
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy code: ', err);
+                    });
+            });
+            
+            // Create language label if language is specified
+            const codeBlock = preBlock.querySelector('code');
+            if (codeBlock && codeBlock.className.includes('language-')) {
+                const langClass = Array.from(codeBlock.classList).find(cl => cl.startsWith('language-'));
+                if (langClass) {
+                    const lang = langClass.replace('language-', '');
+                    if (lang && lang !== 'plaintext') {
+                        const langLabel = document.createElement('span');
+                        langLabel.className = 'code-lang-label';
+                        langLabel.textContent = lang;
+                        wrapper.appendChild(langLabel);
+                    }
+                }
+            }
+            
+            // Add elements to DOM
+            wrapper.appendChild(copyBtn);
+            preBlock.parentNode.insertBefore(wrapper, preBlock);
+            wrapper.appendChild(preBlock);
+        });
+        
         // Highlight code blocks after rendering
-        setTimeout(() => { if (window.hljs) hljs.highlightAll(); }, 0);
-        return html;
+        setTimeout(() => { 
+            if (window.hljs) {
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightBlock(block);
+                });
+            }
+        }, 0);
+        
+        return container.innerHTML;
     }
     // Settings functions - use the external implementation from settings-modal.js
     function openSettings() {
@@ -248,6 +337,43 @@
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
     });
+    
+    // Model indicator
+    async function loadCurrentModel() {
+        try {
+            const response = await fetch('/api/models');
+            const data = await response.json();
+            
+            if (data.success) {
+                document.getElementById('current-model-indicator').textContent = data.current_model;
+            } else {
+                document.getElementById('current-model-indicator').textContent = 'Error';
+            }
+        } catch (error) {
+            console.error('Error loading model info:', error);
+            document.getElementById('current-model-indicator').textContent = 'Error';
+        }
+    }
+    
+    // Load model on page load
+    loadCurrentModel();
+    
+    // Make model indicator clickable to open settings
+    document.querySelector('.model-indicator').addEventListener('click', function() {
+        // Open settings modal and switch to model tab
+        openSettingsModal();
+        
+        // Switch to model tab
+        document.querySelectorAll('.modal-tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelectorAll('.modal-tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        
+        document.querySelector('.modal-tab-btn[data-tab="model"]').classList.add('active');
+        document.getElementById('model-tab').classList.add('active');
+    });
     </script>
 </head>
 <body>
@@ -260,7 +386,11 @@
     <!-- File Upload Modal -->
     <div class="container">
         <header class="top-bar">
-            <h1 class="app-title">DeepSeek Chat</h1>
+            <h1 class="app-title">DeepSeek Wrapper</h1>
+            <div class="model-indicator" title="Current model">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2"></path><path d="M10 8.484C13.207 7.894 14 11.138 14 12.5c0 .469-.003 1.22-.933 1.916"></path><path d="M15 9.5a3.5 3.5 0 0 0-3-2 3.5 3.5 0 0 0-3 2"></path><path d="M9.5 15a3.5 3.5 0 0 0 5 0"></path></svg>
+                <span id="current-model-indicator">Loading...</span>
+            </div>
             <div class="top-actions">
                 <button id="export-btn" class="export-btn" title="Export conversation (Alt+E)" aria-label="Export conversation">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -283,7 +413,9 @@
                 <div class="msg-row {{ msg.role }}">
                             {% if msg.role == 'assistant' %}
                             <div class="avatar">
-                                <span class="avatar-letter">A</span>
+                                <span class="avatar-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2"></path><path d="M10 8.484C13.207 7.894 14 11.138 14 12.5c0 .469-.003 1.22-.933 1.916"></path><path d="M15 9.5a3.5 3.5 0 0 0-3-2 3.5 3.5 0 0 0-3 2"></path><path d="M9.5 15a3.5 3.5 0 0 0 5 0"></path></svg>
+                                </span>
                             </div>
                             {% endif %}
                     <div class="bubble {{ msg.role }}-msg">
@@ -299,7 +431,9 @@
                             </div>
                             {% if msg.role == 'user' %}
                             <div class="avatar">
-                                <span class="avatar-letter">U</span>
+                                <span class="avatar-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                </span>
                             </div>
                             {% endif %}
                         </div>
@@ -309,14 +443,16 @@
                         <div class="empty-chat-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.056 3 11.61c0 1.64.506 3.192 1.397 4.512L3 20.25l5.25-1.837A8.963 8.963 0 0 0 12 20.25z"></path></svg>
                         </div>
-                        <h2>Welcome to DeepSeek Chat</h2>
+                        <h2>Welcome to DeepSeek Wrapper</h2>
                         <p>Type a message or upload a file to begin.</p>
                     </div>
                         {% endif %}
                 {% if loading %}
                     <div class="msg-row assistant loading-placeholder">
                         <div class="avatar">
-                            <span class="avatar-letter">A</span>
+                            <span class="avatar-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2"></path><path d="M10 8.484C13.207 7.894 14 11.138 14 12.5c0 .469-.003 1.22-.933 1.916"></path><path d="M15 9.5a3.5 3.5 0 0 0-3-2 3.5 3.5 0 0 0-3 2"></path><path d="M9.5 15a3.5 3.5 0 0 0 5 0"></path></svg>
+                            </span>
                         </div>
                         <div class="bubble assistant-msg loading-bubble">
                             <div class="typing-indicator">
@@ -509,28 +645,59 @@
         }
     }
     function copyMessage(button) {
-        const contentEl = button.closest('.bubble').querySelector('.content');
-        // Create a temporary div to get innerText without HTML tags from markdown
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = contentEl.innerHTML.replace(/<br\s*\/?>/ig, '\n'); // Convert <br> to newlines for copy
-        const textToCopy = tempDiv.innerText || tempDiv.textContent || '';
-
-        navigator.clipboard.writeText(textToCopy).then(function() {
-            const tooltip = button.querySelector('.action-tooltip');
-            tooltip.textContent = 'Copied!';
-            button.classList.add('copied');
-            setTimeout(function() {
-                tooltip.textContent = 'Copy';
-                button.classList.remove('copied');
-            }, 1500);
-        }).catch(function(err) {
-            console.error('Could not copy text: ', err);
-            const tooltip = button.querySelector('.action-tooltip');
-            tooltip.textContent = 'Error!';
-            setTimeout(function() {
-                tooltip.textContent = 'Copy';
-            }, 1500);
-        });
+        const bubble = button.closest('.bubble');
+        if (!bubble) return;
+        
+        // Get text content from the message bubble
+        const content = bubble.querySelector('.content');
+        let textToCopy = '';
+        
+        // If it's a rendered markdown content with HTML, we need to extract the text
+        if (content.innerHTML.includes('<')) {
+            // Create a temporary div to help extract text
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content.innerHTML;
+            
+            // Handle code blocks specially - preserve formatting
+            const codeBlocks = tempDiv.querySelectorAll('pre code');
+            codeBlocks.forEach(block => {
+                // Replace the code block with a placeholder that won't be affected by textContent
+                const placeholder = `__CODE_BLOCK_${Math.random().toString(36).substr(2, 9)}__`;
+                block._placeholder = placeholder;
+                block._content = block.textContent;
+                block.parentNode.textContent = placeholder;
+            });
+            
+            // Get text content
+            textToCopy = tempDiv.textContent;
+            
+            // Put back code blocks with proper formatting
+            codeBlocks.forEach(block => {
+                textToCopy = textToCopy.replace(block._placeholder, '\n```\n' + block._content + '\n```\n');
+            });
+        } else {
+            // Simple text content
+            textToCopy = content.textContent;
+        }
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(textToCopy)
+            .then(() => {
+                // Show success feedback
+                const tooltip = button.querySelector('.action-tooltip');
+                const originalText = tooltip.textContent;
+                tooltip.textContent = 'Copied!';
+                tooltip.style.opacity = '1';
+                
+                // Reset tooltip after a delay
+                setTimeout(() => {
+                    tooltip.textContent = originalText;
+                    tooltip.style.opacity = '';
+                }, 2000);
+            })
+            .catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
     }
     const themeToggle = document.getElementById('theme-toggle');
     const htmlElement = document.documentElement;
@@ -617,7 +784,7 @@
     
     document.getElementById('export-btn').addEventListener('click', function() {
         const messages = Array.from(document.querySelectorAll('.msg-row'));
-        let text = `# DeepSeek Chat Export - ${new Date().toLocaleString()}\n\n`;
+        let text = `# DeepSeek Wrapper Export - ${new Date().toLocaleString()}\n\n`;
         messages.forEach(msg => {
             const isUser = msg.classList.contains('user');
             const role = isUser ? 'User' : 'Assistant';
@@ -636,7 +803,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `deepseek-chat-export-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.md`;
+        a.download = `deepseek-wrapper-export-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.md`;
         document.body.appendChild(a); // Required for Firefox
         a.click();
         document.body.removeChild(a);
@@ -713,6 +880,37 @@
     // Tool caches are now handled in settings-modal.js
     
     // Initial API key status check
+    </script>
+
+    <!-- Function to handle message grouping -->
+    <script>
+    function applyMessageGrouping() {
+        const messages = document.querySelectorAll('.msg-row');
+        if (messages.length < 2) return;
+        
+        // Loop through messages starting from the second one
+        for (let i = 1; i < messages.length; i++) {
+            const currentMsg = messages[i];
+            const prevMsg = messages[i-1];
+            
+            // Check if current and previous messages are from the same sender
+            const isSameSender = 
+                (currentMsg.classList.contains('user') && prevMsg.classList.contains('user')) ||
+                (currentMsg.classList.contains('assistant') && prevMsg.classList.contains('assistant'));
+            
+            // Add or remove grouped class
+            if (isSameSender) {
+                currentMsg.classList.add('grouped');
+            } else {
+                currentMsg.classList.remove('grouped');
+            }
+        }
+    }
+    
+    // Apply grouping on initial load
+    document.addEventListener('DOMContentLoaded', function() {
+        applyMessageGrouping();
+    });
     </script>
 </body>
 </html> 

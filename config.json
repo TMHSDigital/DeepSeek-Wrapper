@@ -1,0 +1,8 @@
+{
+  "api_key": null,
+  "base_url": "https://api.deepseek.com/v1",
+  "default_model": "deepseek-chat",
+  "timeout": 30.0,
+  "max_retries": 3,
+  "extract_answer_only": false
+}

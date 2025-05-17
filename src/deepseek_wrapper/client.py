@@ -7,6 +7,7 @@ import httpx
 import json
 import logging
 import re
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -235,7 +236,7 @@ class DeepSeekClient:
     def generate_text(self, prompt: str, **kwargs) -> str:
         """Synchronously generate text from DeepSeek."""
         payload = {
-            "model": kwargs.get("model", "deepseek-chat"),
+            "model": kwargs.get("model", self.config.default_model),
             "prompt": prompt,
             "max_tokens": kwargs.get("max_tokens", 256),
             **{k: v for k, v in kwargs.items() if k not in ("model", "max_tokens")},
@@ -249,17 +250,16 @@ class DeepSeekClient:
             data = resp.json()
             return data["choices"][0]["text"] if "choices" in data else data
         except httpx.HTTPStatusError as e:
-            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}") from e
-        except DeepSeekAuthError:
-            raise
+            error_data = e.response.json() if e.response.headers.get("content-type") == "application/json" else {"error": str(e)}
+            raise DeepSeekAPIError(f"API request failed: {error_data}")
         except Exception as e:
-            raise DeepSeekAPIError(str(e)) from e
+            raise DeepSeekAPIError(f"Unknown error: {str(e)}")
 
     @retry()
     async def async_generate_text(self, prompt: str, **kwargs) -> str:
         """Asynchronously generate text from DeepSeek."""
         payload = {
-            "model": kwargs.get("model", "deepseek-chat"),
+            "model": kwargs.get("model", self.config.default_model),
             "prompt": prompt,
             "max_tokens": kwargs.get("max_tokens", 256),
             **{k: v for k, v in kwargs.items() if k not in ("model", "max_tokens")},
@@ -273,20 +273,19 @@ class DeepSeekClient:
             data = resp.json()
             return data["choices"][0]["text"] if "choices" in data else data
         except httpx.HTTPStatusError as e:
-            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}") from e
-        except DeepSeekAuthError:
-            raise
+            error_data = e.response.json() if e.response.headers.get("content-type") == "application/json" else {"error": str(e)}
+            raise DeepSeekAPIError(f"API request failed: {error_data}")
         except Exception as e:
-            raise DeepSeekAPIError(str(e)) from e
+            raise DeepSeekAPIError(f"Unknown error: {str(e)}")
 
     @retry()
     def chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> str:
-        """Synchronously get chat completion from DeepSeek."""
+        """Synchronously generate chat completion from DeepSeek."""
         payload = {
-            "model": kwargs.get("model", "deepseek-chat"),
+            "model": kwargs.get("model", self.config.default_model),
             "messages": messages,
-            "max_tokens": kwargs.get("max_tokens", 256),
-            **{k: v for k, v in kwargs.items() if k not in ("model", "max_tokens")},
+            "max_tokens": kwargs.get("max_tokens", 1024),
+            **{k: v for k, v in kwargs.items() if k not in ("model", "messages", "max_tokens")},
         }
         url = f"{self.config.base_url}/chat/completions"
         try:
@@ -297,20 +296,19 @@ class DeepSeekClient:
             data = resp.json()
             return data["choices"][0]["message"]["content"] if "choices" in data else data
         except httpx.HTTPStatusError as e:
-            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}") from e
-        except DeepSeekAuthError:
-            raise
+            error_data = e.response.json() if e.response.headers.get("content-type") == "application/json" else {"error": str(e)}
+            raise DeepSeekAPIError(f"API request failed: {error_data}")
         except Exception as e:
-            raise DeepSeekAPIError(str(e)) from e
+            raise DeepSeekAPIError(f"Unknown error: {str(e)}")
 
     @retry()
     async def async_chat_completion(self, messages: List[Dict[str, str]], **kwargs) -> str:
-        """Asynchronously get chat completion from DeepSeek."""
+        """Asynchronously generate chat completion from DeepSeek."""
         payload = {
-            "model": kwargs.get("model", "deepseek-chat"),
+            "model": kwargs.get("model", self.config.default_model),
             "messages": messages,
-            "max_tokens": kwargs.get("max_tokens", 256),
-            **{k: v for k, v in kwargs.items() if k not in ("model", "max_tokens")},
+            "max_tokens": kwargs.get("max_tokens", 1024),
+            **{k: v for k, v in kwargs.items() if k not in ("model", "messages", "max_tokens")},
         }
         url = f"{self.config.base_url}/chat/completions"
         try:
@@ -321,283 +319,285 @@ class DeepSeekClient:
             data = resp.json()
             return data["choices"][0]["message"]["content"] if "choices" in data else data
         except httpx.HTTPStatusError as e:
-            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}") from e
-        except DeepSeekAuthError:
-            raise
+            error_data = e.response.json() if e.response.headers.get("content-type") == "application/json" else {"error": str(e)}
+            raise DeepSeekAPIError(f"API request failed: {error_data}")
         except Exception as e:
-            raise DeepSeekAPIError(str(e)) from e
+            raise DeepSeekAPIError(f"Unknown error: {str(e)}")
     
     def chat_completion_with_tools(self, messages: List[Dict[str, str]], 
                                tools: Optional[List[Tool]] = None, 
                                tool_choice: str = "auto", 
                                max_tools_to_use: int = 3,
                                **kwargs) -> Tuple[str, List[Dict[str, Any]]]:
-        """Synchronously get chat completion with tool use capability.
+        """Synchronously generate chat completion with tool usage from DeepSeek.
         
-        This method will:
-        1. Send the conversation to the model with available tools
-        2. Parse any tool calls in the response
-        3. Execute the requested tools
-        4. Send the results back to the model
-        5. Return the final response and tool usage details
+        This is a workaround function that uses a naive approach to tool/function calling
+        by adding instructions to the system message. It will be replaced once DeepSeek
+        adds native function calling support.
         
         Args:
-            messages: The conversation history
-            tools: Optional list of Tool instances to register for this conversation
-            tool_choice: How to use tools - "auto" (model decides), "required", "none"
-            max_tools_to_use: Maximum number of tools to use in a single conversation turn
-            **kwargs: Additional parameters to pass to the API
+            messages: List of message dictionaries
+            tools: Optional list of specific tools to use, otherwise uses registered tools
+            tool_choice: "auto" to let AI decide or "none" to disable tool use
+            max_tools_to_use: Maximum number of tool calls to process in one turn
+            **kwargs: Additional arguments to pass to the completion API
             
         Returns:
-            Tuple containing (final_response, tool_usage_details)
+            A tuple containing (assistant_message, tool_usage_list)
         """
-        # Register any provided tools for this conversation
-        temp_tools = []
-        if tools:
-            for tool in tools:
-                if tool.name not in self.list_tools():
-                    self.register_tool(tool)
-                    temp_tools.append(tool.name)
+        if not self._tool_registry.list_tools() and not tools:
+            # If no tools registered and none provided, just do a normal chat completion
+            return self.chat_completion(messages, **kwargs), []
         
-        try:
-            # Make a copy of messages to avoid modifying the original
-            conversation = messages.copy()
+        # Make a copy of the messages to avoid modifying the original
+        messages_copy = messages.copy()
+        
+        # Determine which tools to use
+        if tools:
+            # Use only specifically provided tools
+            available_tools = [
+                self._tool_registry.get_tool(t.name) if isinstance(t, str) else t
+                for t in tools
+            ]
+            # Filter out any None values from tools that weren't found
+            available_tools = [t for t in available_tools if t]
+        else:
+            # Use all registered tools
+            available_tools = self._tool_registry.get_all_tools()
             
-            # Check if we should expose tools to the model
-            use_tools = tool_choice.lower() != "none" and len(self.list_tools()) > 0
-            tool_usage = []
-            
-            if use_tools:
-                # Add special system message about available tools if not already present
-                has_tool_instructions = False
-                for msg in conversation:
-                    if msg.get("role") == "system" and "available tools" in msg.get("content", "").lower():
-                        has_tool_instructions = True
-                        break
+        if not available_tools:
+            # No tools available, just do a normal chat completion
+            return self.chat_completion(messages, **kwargs), []
+        
+        # Use the tool schemas
+        function_defs = []
+        for tool in available_tools:
+            schema = tool.get_schema()
+            if schema:
+                function_defs.append(schema)
                 
-                if not has_tool_instructions:
-                    # Find existing system message or create a new one
-                    system_idx = next((i for i, m in enumerate(conversation) 
-                                     if m.get("role") == "system"), None)
-                    
-                    tool_schemas = self._get_tools_as_functions()
-                    tools_instruction = (
-                        "\n\nYou have access to the following tools:\n" + 
-                        json.dumps(tool_schemas, indent=2) + 
-                        "\n\nTo use a tool, respond with a message that includes either:"
-                        "\n1. JSON with the tool name and arguments: ```json\n{\"name\": \"tool_name\", \"arguments\": {\"arg1\": \"value1\"}}\n```"
-                        "\n2. A function-like syntax: tool_name(arg1=\"value1\", arg2=\"value2\")"
-                        "\n\nIf you need to use multiple tools, specify them clearly one after another."
-                    )
-                    
-                    if system_idx is not None:
-                        # Append to existing system message
-                        conversation[system_idx]["content"] += tools_instruction
-                    else:
-                        # Add new system message at the beginning
-                        conversation.insert(0, {
-                            "role": "system",
-                            "content": "You are a helpful assistant with access to tools." + tools_instruction
-                        })
-            
-            # Maximum conversation turns for tool usage
-            max_turns = 3
-            turn = 0
-            
-            while turn < max_turns:
-                turn += 1
+        # Add tool information to system message
+        system_msg = None
+        for i, msg in enumerate(messages_copy):
+            if msg.get("role") == "system":
+                system_msg = msg
+                break
                 
-                # Get response from model
-                logger.info(f"Getting model response (turn {turn}/{max_turns})")
-                response = self.chat_completion(conversation, **kwargs)
-                
-                # Check if tool usage is requested in the response
-                if use_tools:
-                    tool_calls = self._parse_tool_calls(response)
-                    
-                    if not tool_calls:
-                        # No tools requested, return the response
-                        logger.info("No tool calls found, returning response")
-                        return response, tool_usage
-                    
-                    # Limit the number of tools to use
-                    limited_calls = tool_calls[:max_tools_to_use]
-                    
-                    # Track tool usage
-                    tool_usage.extend([{
-                        "turn": turn, 
-                        "tool": call["name"], 
-                        "arguments": call["arguments"]
-                    } for call in limited_calls])
-                    
-                    # Add assistant's response to conversation
-                    conversation.append({"role": "assistant", "content": response})
-                    
-                    # Execute tools
-                    logger.info(f"Executing {len(limited_calls)} tool calls")
-                    tool_results = self._execute_tool_calls(limited_calls)
-                    
-                    # Format results and add to conversation
-                    tool_response = self._format_tool_results_as_message(tool_results)
-                    conversation.append(tool_response)
-                    
-                    # If this is the last turn, make one final call to get the model's response
-                    if turn == max_turns:
-                        logger.info("Final turn reached, getting final response")
-                        final_response = self.chat_completion(conversation, **kwargs)
-                        return final_response, tool_usage
-                else:
-                    # Tools not enabled, return the response
-                    return response, []
+        if system_msg:
+            # Append to existing system message
+            tool_instructions = self._format_tool_instructions(function_defs)
+            system_msg["content"] += f"\n\n{tool_instructions}"
+        else:
+            # Create new system message with tool instructions
+            tool_instructions = self._format_tool_instructions(function_defs)
+            messages_copy.insert(0, {
+                "role": "system", 
+                "content": tool_instructions
+            })
             
-            # Should not reach here, but just in case
-            return response, tool_usage
+        all_tool_calls = []
+        response_content = None
+        
+        if tool_choice == "none":
+            # User requested no tool usage
+            return self.chat_completion(messages_copy, **kwargs), []
+        
+        # Make the chat completion call with the modified messages
+        response = self.chat_completion(
+            messages_copy,
+            model=kwargs.get("model", self.config.default_model),
+            temperature=kwargs.get("temperature", 0.7),
+            max_tokens=kwargs.get("max_tokens", 1024),
+            **{k: v for k, v in kwargs.items() if k not in ("model", "temperature", "max_tokens")},
+        )
+        
+        response_content = response
+        
+        # Parse the response for tool calls
+        tool_calls = self._parse_tool_calls(response_content)
+        
+        # Execute tools and get results
+        if tool_calls and len(tool_calls) <= max_tools_to_use:
+            all_tool_calls.extend(tool_calls)
             
-        finally:
-            # Clean up temporarily registered tools
-            for tool_name in temp_tools:
-                self.unregister_tool(tool_name)
-    
+            # Execute the tool calls
+            tool_results = self._execute_tool_calls(tool_calls)
+            
+            # Format the tool results as a new message
+            tool_result_msg = self._format_tool_results_as_message(tool_results)
+            
+            # Add the original assistant response and tool results to the messages
+            messages_copy.append({"role": "assistant", "content": response_content})
+            messages_copy.append(tool_result_msg)
+            
+            # Make another call to get the final assistant response
+            final_response = self.chat_completion(
+                messages_copy,
+                model=kwargs.get("model", self.config.default_model),
+                temperature=kwargs.get("temperature", 0.7),
+                max_tokens=kwargs.get("max_tokens", 1024),
+                **{k: v for k, v in kwargs.items() if k not in ("model", "temperature", "max_tokens")},
+            )
+            
+            # Update the response content to the final response
+            response_content = final_response
+            
+        return response_content, all_tool_calls
+
     async def async_chat_completion_with_tools(self, messages: List[Dict[str, str]], 
                                           tools: Optional[List[Tool]] = None, 
                                           tool_choice: str = "auto", 
                                           max_tools_to_use: int = 3,
                                           **kwargs) -> Tuple[str, List[Dict[str, Any]]]:
-        """Asynchronously get chat completion with tool use capability.
+        """Asynchronously generate chat completion with tool usage from DeepSeek.
         
-        This method will:
-        1. Send the conversation to the model with available tools
-        2. Parse any tool calls in the response
-        3. Execute the requested tools
-        4. Send the results back to the model
-        5. Return the final response and tool usage details
+        This is a workaround function that uses a naive approach to tool/function calling
+        by adding instructions to the system message. It will be replaced once DeepSeek
+        adds native function calling support.
         
         Args:
-            messages: The conversation history
-            tools: Optional list of Tool instances to register for this conversation
-            tool_choice: How to use tools - "auto" (model decides), "required", "none"
-            max_tools_to_use: Maximum number of tools to use in a single conversation turn
-            **kwargs: Additional parameters to pass to the API
+            messages: List of message dictionaries
+            tools: Optional list of specific tools to use, otherwise uses registered tools
+            tool_choice: "auto" to let AI decide or "none" to disable tool use
+            max_tools_to_use: Maximum number of tool calls to process in one turn
+            **kwargs: Additional arguments to pass to the completion API
             
         Returns:
-            Tuple containing (final_response, tool_usage_details)
+            A tuple containing (assistant_message, tool_usage_list)
         """
-        # Register any provided tools for this conversation
-        temp_tools = []
-        if tools:
-            for tool in tools:
-                if tool.name not in self.list_tools():
-                    self.register_tool(tool)
-                    temp_tools.append(tool.name)
+        if not self._tool_registry.list_tools() and not tools:
+            # If no tools registered and none provided, just do a normal chat completion
+            return await self.async_chat_completion(messages, **kwargs), []
         
-        try:
-            # Make a copy of messages to avoid modifying the original
-            conversation = messages.copy()
+        # Make a copy of the messages to avoid modifying the original
+        messages_copy = messages.copy()
+        
+        # Determine which tools to use
+        if tools:
+            # Use only specifically provided tools
+            available_tools = [
+                self._tool_registry.get_tool(t.name) if isinstance(t, str) else t
+                for t in tools
+            ]
+            # Filter out any None values from tools that weren't found
+            available_tools = [t for t in available_tools if t]
+        else:
+            # Use all registered tools
+            available_tools = self._tool_registry.get_all_tools()
             
-            # Check if we should expose tools to the model
-            use_tools = tool_choice.lower() != "none" and len(self.list_tools()) > 0
-            tool_usage = []
-            
-            if use_tools:
-                # Add special system message about available tools if not already present
-                has_tool_instructions = False
-                for msg in conversation:
-                    if msg.get("role") == "system" and "available tools" in msg.get("content", "").lower():
-                        has_tool_instructions = True
-                        break
+        if not available_tools:
+            # No tools available, just do a normal chat completion
+            return await self.async_chat_completion(messages, **kwargs), []
+        
+        # Use the tool schemas
+        function_defs = []
+        for tool in available_tools:
+            schema = tool.get_schema()
+            if schema:
+                function_defs.append(schema)
                 
-                if not has_tool_instructions:
-                    # Find existing system message or create a new one
-                    system_idx = next((i for i, m in enumerate(conversation) 
-                                     if m.get("role") == "system"), None)
-                    
-                    tool_schemas = self._get_tools_as_functions()
-                    tools_instruction = (
-                        "\n\nYou have access to the following tools:\n" + 
-                        json.dumps(tool_schemas, indent=2) + 
-                        "\n\nTo use a tool, respond with a message that includes either:"
-                        "\n1. JSON with the tool name and arguments: ```json\n{\"name\": \"tool_name\", \"arguments\": {\"arg1\": \"value1\"}}\n```"
-                        "\n2. A function-like syntax: tool_name(arg1=\"value1\", arg2=\"value2\")"
-                        "\n\nIf you need to use multiple tools, specify them clearly one after another."
-                    )
-                    
-                    if system_idx is not None:
-                        # Append to existing system message
-                        conversation[system_idx]["content"] += tools_instruction
-                    else:
-                        # Add new system message at the beginning
-                        conversation.insert(0, {
-                            "role": "system",
-                            "content": "You are a helpful assistant with access to tools." + tools_instruction
-                        })
-            
-            # Maximum conversation turns for tool usage
-            max_turns = 3
-            turn = 0
-            
-            while turn < max_turns:
-                turn += 1
+        # Add tool information to system message
+        system_msg = None
+        for i, msg in enumerate(messages_copy):
+            if msg.get("role") == "system":
+                system_msg = msg
+                break
                 
-                # Get response from model
-                logger.info(f"Getting model response (turn {turn}/{max_turns})")
-                response = await self.async_chat_completion(conversation, **kwargs)
-                
-                # Check if tool usage is requested in the response
-                if use_tools:
-                    tool_calls = self._parse_tool_calls(response)
-                    
-                    if not tool_calls:
-                        # No tools requested, return the response
-                        logger.info("No tool calls found, returning response")
-                        return response, tool_usage
-                    
-                    # Limit the number of tools to use
-                    limited_calls = tool_calls[:max_tools_to_use]
-                    
-                    # Track tool usage
-                    tool_usage.extend([{
-                        "turn": turn, 
-                        "tool": call["name"], 
-                        "arguments": call["arguments"]
-                    } for call in limited_calls])
-                    
-                    # Add assistant's response to conversation
-                    conversation.append({"role": "assistant", "content": response})
-                    
-                    # Execute tools
-                    logger.info(f"Executing {len(limited_calls)} tool calls")
-                    tool_results = self._execute_tool_calls(limited_calls)
-                    
-                    # Format results and add to conversation
-                    tool_response = self._format_tool_results_as_message(tool_results)
-                    conversation.append(tool_response)
-                    
-                    # If this is the last turn, make one final call to get the model's response
-                    if turn == max_turns:
-                        logger.info("Final turn reached, getting final response")
-                        final_response = await self.async_chat_completion(conversation, **kwargs)
-                        return final_response, tool_usage
-                else:
-                    # Tools not enabled, return the response
-                    return response, []
+        if system_msg:
+            # Append to existing system message
+            tool_instructions = self._format_tool_instructions(function_defs)
+            system_msg["content"] += f"\n\n{tool_instructions}"
+        else:
+            # Create new system message with tool instructions
+            tool_instructions = self._format_tool_instructions(function_defs)
+            messages_copy.insert(0, {
+                "role": "system", 
+                "content": tool_instructions
+            })
             
-            # Should not reach here, but just in case
-            return response, tool_usage
+        all_tool_calls = []
+        response_content = None
+        
+        if tool_choice == "none":
+            # User requested no tool usage
+            return await self.async_chat_completion(messages_copy, **kwargs), []
+        
+        # Make the chat completion call with the modified messages
+        response = await self.async_chat_completion(
+            messages_copy,
+            model=kwargs.get("model", self.config.default_model),
+            temperature=kwargs.get("temperature", 0.7),
+            max_tokens=kwargs.get("max_tokens", 1024),
+            **{k: v for k, v in kwargs.items() if k not in ("model", "temperature", "max_tokens")},
+        )
+        
+        response_content = response
+        
+        # Parse the response for tool calls
+        tool_calls = self._parse_tool_calls(response_content)
+        
+        # Execute tools and get results
+        if tool_calls and len(tool_calls) <= max_tools_to_use:
+            all_tool_calls.extend(tool_calls)
             
-        finally:
-            # Clean up temporarily registered tools
-            for tool_name in temp_tools:
-                self.unregister_tool(tool_name)
+            # Execute the tool calls
+            tool_results = self._execute_tool_calls(tool_calls)
+            
+            # Format the tool results as a new message
+            tool_result_msg = self._format_tool_results_as_message(tool_results)
+            
+            # Add the original assistant response and tool results to the messages
+            messages_copy.append({"role": "assistant", "content": response_content})
+            messages_copy.append(tool_result_msg)
+            
+            # Make another call to get the final assistant response
+            final_response = await self.async_chat_completion(
+                messages_copy,
+                model=kwargs.get("model", self.config.default_model),
+                temperature=kwargs.get("temperature", 0.7),
+                max_tokens=kwargs.get("max_tokens", 1024),
+                **{k: v for k, v in kwargs.items() if k not in ("model", "temperature", "max_tokens")},
+            )
+            
+            # Update the response content to the final response
+            response_content = final_response
+            
+        return response_content, all_tool_calls
 
-    @retry()
     async def async_chat_completion_stream(self, messages: List[Dict[str, str]], **kwargs) -> AsyncGenerator[str, None]:
         """Stream chat completion from DeepSeek.
         
         Returns:
             AsyncGenerator that yields content chunks as they arrive.
         """
+        # Manual retry implementation for the generator
+        attempts = 0
+        max_attempts = kwargs.pop("max_retries", self.config.max_retries)
+        delay = 1.0
+        backoff_factor = 2.0
+        
+        while attempts < max_attempts:
+            try:
+                async for chunk in self._async_chat_completion_stream_impl(messages, **kwargs):
+                    yield chunk
+                return
+            except Exception as e:
+                attempts += 1
+                if attempts >= max_attempts:
+                    logger.error(f"Failed after {max_attempts} attempts: {str(e)}")
+                    raise
+                
+                logger.warning(f"Attempt {attempts} failed: {str(e)}. Retrying in {delay:.1f}s...")
+                await asyncio.sleep(delay)
+                delay *= backoff_factor
+        
+        # This should never be reached but adding as a safeguard
+        raise RuntimeError(f"Failed after {max_attempts} attempts")
+        
+    async def _async_chat_completion_stream_impl(self, messages: List[Dict[str, str]], **kwargs) -> AsyncGenerator[str, None]:
+        """Internal implementation of streaming chat completion."""
         payload = {
-            "model": kwargs.get("model", "deepseek-chat"),
+            "model": kwargs.get("model", self.config.default_model),
             "messages": messages,
             "max_tokens": kwargs.get("max_tokens", 256),
             "stream": True,  # Enable streaming
@@ -605,6 +605,7 @@ class DeepSeekClient:
         }
         url = f"{self.config.base_url}/chat/completions"
         logger.debug(f"Streaming request to DeepSeek API: URL={url}, payload={json.dumps(payload, indent=2)}")
+        
         try:
             async with self._async_client.stream('POST', url, json=payload, headers=self._headers) as resp:
                 if resp.status_code == 401:
@@ -638,4 +639,57 @@ class DeepSeekClient:
         except DeepSeekAuthError:
             raise
         except Exception as e:
-            raise DeepSeekAPIError(str(e)) from e 
+            raise DeepSeekAPIError(str(e)) from e
+
+    def _format_tool_instructions(self, function_defs: List[Dict[str, Any]]) -> str:
+        """Format tool instructions for the system message.
+        
+        Args:
+            function_defs: List of function definitions from tool schemas
+            
+        Returns:
+            String with formatted tool instructions
+        """
+        if not function_defs:
+            return ""
+            
+        instructions = (
+            "\nYou have access to the following tools:\n" + 
+            json.dumps(function_defs, indent=2) + 
+            "\n\nTo use a tool, respond with a message that includes either:"
+            "\n1. JSON with the tool name and arguments: ```json\n{\"name\": \"tool_name\", \"arguments\": {\"arg1\": \"value1\"}}\n```"
+            "\n2. A function-like syntax: tool_name(arg1=\"value1\", arg2=\"value2\")"
+            "\n\nIf you need to use multiple tools, specify them clearly one after another."
+        )
+        
+        return instructions 
+
+    def set_default_model(self, model_name: str) -> bool:
+        """Change the default model to use for requests.
+        
+        Args:
+            model_name: The name of the model to use
+            
+        Returns:
+            True if successful, False if the model is not supported
+        """
+        if model_name in self.config.get_available_models():
+            self.config.set_default_model(model_name)
+            return True
+        return False
+    
+    def get_default_model(self) -> str:
+        """Get the current default model.
+        
+        Returns:
+            Current default model name
+        """
+        return self.config.default_model
+    
+    def get_available_models(self) -> List[str]:
+        """Get a list of available models.
+        
+        Returns:
+            List of available model names
+        """
+        return self.config.get_available_models() 

@@ -22,15 +22,22 @@ try:
     import PyPDF2
 except ImportError:
     PyPDF2 = None
+from deepseek_wrapper.utils.response_processor import extract_final_answer, process_model_response
+from deepseek_wrapper.config_manager import get_config_value, update_config, load_config
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Determine base directory for resources
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET_KEY", "supersecret"))
-templates = Jinja2Templates(directory="src/deepseek_wrapper/templates")
-app.mount("/static", StaticFiles(directory="src/deepseek_wrapper/static"), name="static")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Initialize client with config validation
 client = None
@@ -75,7 +82,7 @@ except Exception as e:
     logger.error(f"Failed to initialize DeepSeek client: {e}")
     raise
 
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), '../../uploads')
+UPLOAD_DIR = os.path.join(BASE_DIR, '../uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
@@ -83,7 +90,7 @@ MAX_FILE_CHARS = 4000  # Limit injected text for context
 
 # Function to update .env file with API keys
 def update_env_file(api_keys):
-    env_path = os.path.join(os.path.dirname(__file__), '../../.env')
+    env_path = os.path.join(BASE_DIR, '../.env')
     
     # Read existing .env content
     env_content = {}
@@ -215,6 +222,10 @@ async def chat(request: Request, user_message: str = Form(...)):
             if "role" in msg and "content" in msg and "file" not in msg:
                 formatted_history.append({"role": msg["role"], "content": msg["content"]})
         
+        # Get the extract_answer_only setting
+        extract_answer_only = get_config_value("extract_answer_only")
+        current_model = client.get_default_model()
+        
         # Use tools if available
         if client.list_tools():
             # Use function calling with tools
@@ -227,6 +238,9 @@ async def chat(request: Request, user_message: str = Form(...)):
                 max_tokens=1024
             )
             
+            # Process the response based on settings
+            response = process_model_response(response, current_model, extract_answer_only)
+            
             # Log tool usage if any
             if tool_usage:
                 logger.info(f"Tools used in conversation: {tool_usage}")
@@ -234,6 +248,9 @@ async def chat(request: Request, user_message: str = Form(...)):
             # Fall back to regular chat completion
             logger.info("Using regular chat completion (no tools registered)")
             response = await client.async_chat_completion(formatted_history)
+            
+            # Process the response based on settings
+            response = process_model_response(response, current_model, extract_answer_only)
             
         loading = False
     except Exception as e:
@@ -375,16 +392,34 @@ async def chat_stream(request: Request, user_message: str = None, system_prompt:
             yield f"data: {json.dumps({'type': 'assistant_msg_start', 'message': assistant_msg})}\n\n"
             try:
                 collected_content = []
+                
+                # Directly iterate over the async generator without awaiting it first
                 async for content_chunk in client.async_chat_completion_stream(
                     formatted_history, 
-                    model="deepseek-chat",  # Explicitly set the model
-                    temperature=0.7,  # Add reasonable temperature value
-                    max_tokens=2048  # Increase max tokens for longer responses
+                    model=client.get_default_model(),
+                    temperature=0.7,
+                    max_tokens=2048
                 ):
                     print(f"DEBUG: chat_stream - Received chunk from DeepSeek: '{content_chunk}'") # Critical log
                     collected_content.append(content_chunk)
                     yield f"data: {json.dumps({'type': 'content_chunk', 'chunk': content_chunk})}\n\n"
-                complete_msg = {"role": "assistant", "content": ''.join(collected_content), "timestamp": now_str()}
+                
+                # Process complete response if needed
+                complete_content = ''.join(collected_content)
+                
+                # Get the extract_answer_only setting
+                extract_answer_only = get_config_value("extract_answer_only")
+                current_model = client.get_default_model()
+                
+                # Process the response based on settings
+                processed_content = complete_content
+                if extract_answer_only:
+                    processed_content = process_model_response(complete_content, current_model, extract_answer_only)
+                    # If the content was processed/changed, send a special message to replace everything
+                    if processed_content != complete_content:
+                        yield f"data: {json.dumps({'type': 'replace_content', 'content': processed_content})}\n\n"
+                
+                complete_msg = {"role": "assistant", "content": processed_content, "timestamp": now_str()}
                 print(f"DEBUG: chat_stream - Streaming complete. Full AI content: '{complete_msg['content']}'")
                 last_user_msg_idx = -1
                 for i in range(len(history) - 1, -1, -1):
@@ -600,4 +635,121 @@ async def simple_test_weather():
         "api_key_exists": bool(api_key),
         "api_key_masked": api_key[:4] + "****" + api_key[-4:] if api_key and len(api_key) > 8 else None,
         "env_keys": {k: "exists" for k in os.environ.keys() if "API" in k or "KEY" in k}
-    }) 
+    })
+
+@app.get("/api/models")
+async def get_models():
+    """Get available models and current default model."""
+    if not client:
+        return JSONResponse(
+            {"success": False, "error": "DeepSeek client not initialized"},
+            status_code=500
+        )
+    
+    try:
+        available_models = client.get_available_models()
+        current_model = client.get_default_model()
+        
+        return JSONResponse({
+            "success": True,
+            "models": available_models,
+            "current_model": current_model
+        })
+    except Exception as e:
+        logger.error(f"Error getting models: {str(e)}", exc_info=True)
+        return JSONResponse(
+            {"success": False, "error": str(e)},
+            status_code=500
+        )
+
+@app.post("/api/set-model")
+async def set_model(request: Request):
+    """Set the default model."""
+    if not client:
+        return JSONResponse(
+            {"success": False, "error": "DeepSeek client not initialized"},
+            status_code=500
+        )
+    
+    try:
+        data = await request.json()
+        model_name = data.get("model")
+        
+        if not model_name:
+            return JSONResponse(
+                {"success": False, "error": "Model name is required"},
+                status_code=400
+            )
+        
+        success = client.set_default_model(model_name)
+        
+        if success:
+            return JSONResponse({
+                "success": True,
+                "model": model_name
+            })
+        else:
+            return JSONResponse(
+                {"success": False, "error": f"Model '{model_name}' is not supported"},
+                status_code=400
+            )
+    except Exception as e:
+        logger.error(f"Error setting model: {str(e)}", exc_info=True)
+        return JSONResponse(
+            {"success": False, "error": str(e)},
+            status_code=500
+        )
+
+@app.get("/api/config")
+async def get_config():
+    """Get the current configuration settings."""
+    try:
+        config = load_config()
+        # Remove sensitive information
+        if "api_key" in config:
+            del config["api_key"]
+        
+        return JSONResponse({
+            "success": True,
+            "config": config
+        })
+    except Exception as e:
+        logger.error(f"Error getting config: {str(e)}", exc_info=True)
+        return JSONResponse(
+            {"success": False, "error": str(e)},
+            status_code=500
+        )
+
+@app.post("/api/set-config")
+async def set_config(request: Request):
+    """Set a specific configuration value."""
+    try:
+        data = await request.json()
+        key = data.get("key")
+        value = data.get("value")
+        
+        if not key:
+            return JSONResponse(
+                {"success": False, "error": "Key is required"},
+                status_code=400
+            )
+        
+        success = update_config(key, value)
+        
+        if success:
+            return JSONResponse({
+                "success": True,
+                "key": key,
+                "value": value
+            })
+        else:
+            return JSONResponse(
+                {"success": False, "error": "Failed to update configuration"},
+                status_code=500
+            )
+    except Exception as e:
+        logger.error(f"Error setting config: {str(e)}", exc_info=True)
+        return JSONResponse(
+            {"success": False, "error": str(e)},
+            status_code=500
+        ) 

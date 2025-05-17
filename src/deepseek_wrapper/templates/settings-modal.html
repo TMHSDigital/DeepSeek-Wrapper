@@ -7,6 +7,7 @@
     
     <div class="modal-tabs">
         <button class="modal-tab-btn active" data-tab="general">General</button>
+        <button class="modal-tab-btn" data-tab="model">Model</button>
         <button class="modal-tab-btn" data-tab="tools">Tools</button>
     </div>
     
@@ -26,6 +27,37 @@
             <div class="form-group">
                 <label for="settings-system-prompt">System Prompt</label>
                 <textarea id="settings-system-prompt" placeholder="Enter system prompt for the AI assistant"></textarea>
+            </div>
+        </div>
+        
+        <!-- Model Tab -->
+        <div class="modal-tab-content" id="model-tab" tabindex="0">
+            <div class="model-selection">
+                <div class="model-selection-header">
+                    <h3>Model Selection</h3>
+                    <button id="refresh-models" class="secondary-button" title="Refresh models">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path></svg>
+                        Refresh
+                    </button>
+                </div>
+                <div id="model-selection-container" class="model-selection-options">
+                    <div class="model-selection-loading">
+                        <div class="model-selection-spinner"></div>
+                        <span>Loading model information...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="model-options">
+                <div class="form-group">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="extract-answer-only">
+                        <span class="checkbox-label">Show only final answers for reasoning models</span>
+                        <div class="checkbox-description">
+                            When enabled, the DeepSeek Reasoner model will use its chain-of-thought capabilities internally, but only the final answer will be shown to the user.
+                        </div>
+                    </label>
+                </div>
             </div>
         </div>
         

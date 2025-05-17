@@ -805,4 +805,130 @@ input:checked + .slider:before {
 .status-pill.not-configured {
     background-color: rgba(149, 165, 166, 0.15);
     color: #7f8c8d;
+}
+
+/* Model Selection Styles */
+.model-selection {
+    padding: 0 0 1rem 0;
+}
+
+.model-selection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.model-selection-header h3 {
+    margin: 0;
+}
+
+.model-selection-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    flex-direction: column;
+    color: var(--text-muted);
+}
+
+.model-selection-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--accent-color);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 0.5rem;
+}
+
+.model-option {
+    display: flex;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 0.8rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.model-option:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.model-option.selected {
+    border-color: var(--accent-color);
+    background-color: var(--accent-color-transparent);
+}
+
+.model-option-icon {
+    flex: 0 0 40px;
+    margin-right: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.model-option-icon svg {
+    color: var(--accent-color);
+}
+
+.model-option-info {
+    flex: 1;
+}
+
+.model-option-name {
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+
+.model-option-description {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.model-option-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background-color: var(--accent-color);
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+}
+
+/* Add styles for model options */
+.model-options {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.checkbox-container {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    cursor: pointer;
+}
+
+.checkbox-label {
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+.checkbox-description {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-left: 1.5rem;
+    margin-top: 0.25rem;
+    line-height: 1.4;
 } 

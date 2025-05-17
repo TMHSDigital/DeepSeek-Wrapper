@@ -3,6 +3,10 @@
 // Global variables
 let currentTab = 'general';
 
+// Model settings
+let availableModels = [];
+let currentModel = '';
+
 // Clean up any UI artifacts by removing any elements with text exactly "API Key" that aren't labels
 function cleanupApiKeyArtifacts() {
     const allElements = document.querySelectorAll('#tools-tab *');
@@ -112,6 +116,9 @@ window.openSettingsModal = function() {
         // Load tool status information
         loadToolStatus();
         
+        // Load model options
+        loadModelOptions();
+        
         // Set default tab
         switchTab('general');
         
@@ -149,18 +156,42 @@ window.closeSettingsModal = function() {
 }
 
 // Save settings from the modal
-window.saveSettingsModal = function() {
+window.saveSettingsModal = async function() {
+    // Handle model selection
+    await saveModelSelection();
+    
     const username = document.getElementById('settings-username').value || 'User';
     const avatar = document.getElementById('settings-avatar').value || 'U';
     const systemPrompt = document.getElementById('settings-system-prompt').value || 'You are a helpful AI assistant.';
+    
+    // Get extract answer only setting
+    const extractAnswerOnlyCheckbox = document.getElementById('extract-answer-only');
+    const extractAnswerOnly = extractAnswerOnlyCheckbox ? extractAnswerOnlyCheckbox.checked : false;
     
     // Store in localStorage
     localStorage.setItem('ds_username', username);
     localStorage.setItem('ds_avatar', avatar);
     localStorage.setItem('ds_system_prompt', systemPrompt);
+    localStorage.setItem('ds_extract_answer_only', extractAnswerOnly);
+    
+    // Save extract_answer_only setting to config
+    try {
+        await fetch('/api/set-config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                key: 'extract_answer_only',
+                value: extractAnswerOnly
+            })
+        });
+    } catch (error) {
+        console.error('Error saving extract_answer_only setting:', error);
+    }
     
     // Also save API keys to server
-    saveApiKeys();
+    await saveApiKeys();
     
     // Close modal
     closeSettingsModal();
@@ -195,11 +226,18 @@ function loadSettings() {
     const username = localStorage.getItem('ds_username') || '';
     const avatar = localStorage.getItem('ds_avatar') || '';
     const systemPrompt = localStorage.getItem('ds_system_prompt') || 'You are a helpful AI assistant.';
+    const extractAnswerOnly = localStorage.getItem('ds_extract_answer_only') === 'true';
     
     // Update form fields
     document.getElementById('settings-username').value = username;
     document.getElementById('settings-avatar').value = avatar;
     document.getElementById('settings-system-prompt').value = systemPrompt;
+    
+    // Update extract answer only checkbox if it exists
+    const extractAnswerOnlyCheckbox = document.getElementById('extract-answer-only');
+    if (extractAnswerOnlyCheckbox) {
+        extractAnswerOnlyCheckbox.checked = extractAnswerOnly;
+    }
     
     // Load API key status
     fetch('/api/key-status')
@@ -229,10 +267,28 @@ function loadSettings() {
             }
         })
         .catch(error => console.error('Error loading API key status:', error));
+        
+    // Load config settings
+    fetch('/api/config')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.config) {
+                const config = data.config;
+                
+                // Update extract answer only checkbox if it exists
+                const extractAnswerOnlyCheckbox = document.getElementById('extract-answer-only');
+                if (extractAnswerOnlyCheckbox && config.hasOwnProperty('extract_answer_only')) {
+                    extractAnswerOnlyCheckbox.checked = config.extract_answer_only;
+                    // Also update localStorage to keep things in sync
+                    localStorage.setItem('ds_extract_answer_only', config.extract_answer_only);
+                }
+            }
+        })
+        .catch(error => console.error('Error loading config settings:', error));
 }
 
 // Save API keys
-function saveApiKeys() {
+async function saveApiKeys() {
     // Gather input values
     const apiKeys = {};
     
@@ -265,24 +321,30 @@ function saveApiKeys() {
     
     // Send to server
     if (Object.keys(apiKeys).length > 0) {
-        fetch('/save_api_keys', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(apiKeys)
-        })
-        .then(response => response.json())
-        .then(data => {
+        try {
+            const response = await fetch('/save_api_keys', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(apiKeys)
+            });
+            
+            const data = await response.json();
+            
             if (data.success) {
                 console.log('API keys saved successfully');
                 // Refresh tool status after saving keys
                 setTimeout(loadToolStatus, 500);
+                return true;
             } else {
                 console.error('Failed to save API keys:', data.error);
+                return false;
             }
-        })
-        .catch(error => console.error('Error saving API keys:', error));
+        } catch (error) {
+            console.error('Error saving API keys:', error);
+            return false;
+        }
     }
 }
 
@@ -611,4 +673,147 @@ function switchTab(tabName) {
 function cleanUpElements() {
     // Just call the more specific function for backward compatibility
     cleanupApiKeyArtifacts();
+}
+
+// Function to load model options from API
+async function loadModelOptions() {
+    try {
+        const response = await fetch('/api/models');
+        const data = await response.json();
+        
+        if (data.success) {
+            availableModels = data.models;
+            currentModel = data.current_model;
+            
+            // Clear and render model options
+            const container = document.getElementById('model-selection-container');
+            container.innerHTML = '';
+            
+            availableModels.forEach(model => {
+                const isSelected = model === currentModel;
+                const modelElement = document.createElement('div');
+                modelElement.className = `model-option ${isSelected ? 'selected' : ''}`;
+                modelElement.dataset.model = model;
+                
+                let modelDescription = '';
+                let modelIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+                
+                if (model === 'deepseek-chat') {
+                    modelDescription = 'General purpose chat model with strong knowledge across domains.';
+                } else if (model === 'deepseek-coder') {
+                    modelDescription = 'Specialized for code generation and technical tasks.';
+                    modelIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"></path><path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2h-1"></path></svg>';
+                } else if (model.includes('67b')) {
+                    modelDescription = 'Large model with enhanced capabilities for complex tasks.';
+                    modelIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"></path></svg>';
+                } else if (model.includes('7b')) {
+                    modelDescription = 'Smaller, faster model for general use cases.';
+                    modelIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"></circle><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"></path></svg>';
+                } else if (model === 'deepseek-reasoner') {
+                    modelDescription = 'Specialized for complex reasoning and problem-solving tasks.';
+                    modelIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.86 4.02A1.73 1.73 0 0 0 8.7 2a1.745 1.745 0 0 0-1.72 2.02M14.14 4.02a1.73 1.73 0 0 1 1.16-2.02 1.745 1.745 0 0 1 1.72 2.02M12 9.33V12m-3.7-3.4a3.03 3.03 0 0 0-1.86 4c.24.46.6.85 1.05 1.14l2.4 1.67a1.49 1.49 0 0 0 2.11-.47c.26-.4.27-.92.04-1.33a1.49 1.49 0 0 0-.55-.5l-1.6-1.1M15.7 8.6a3.02 3.02 0 0 1 1.86 4c-.24.46-.6.85-1.05 1.14l-2.4 1.67a1.49 1.49 0 0 1-2.11-.47c-.26-.4-.27-.92-.04-1.33a1.49 1.49 0 0 1 .55-.5l1.6-1.1M22 12a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10Z"></path></svg>';
+                }
+                
+                modelElement.innerHTML = `
+                    <div class="model-option-icon">
+                        ${modelIcon}
+                    </div>
+                    <div class="model-option-info">
+                        <div class="model-option-name">${model}</div>
+                        <div class="model-option-description">${modelDescription}</div>
+                    </div>
+                    ${isSelected ? '<div class="model-option-badge">Current</div>' : ''}
+                `;
+                
+                // Add click event to select this model
+                modelElement.addEventListener('click', () => {
+                    // Update selection UI
+                    document.querySelectorAll('.model-option').forEach(el => {
+                        el.classList.remove('selected');
+                        el.querySelector('.model-option-badge')?.remove();
+                    });
+                    
+                    modelElement.classList.add('selected');
+                    
+                    // Add the "Current" badge if it doesn't exist
+                    if (!modelElement.querySelector('.model-option-badge')) {
+                        const badge = document.createElement('div');
+                        badge.className = 'model-option-badge';
+                        badge.textContent = 'Current';
+                        modelElement.appendChild(badge);
+                    }
+                    
+                    // Update selected model
+                    currentModel = model;
+                });
+                
+                container.appendChild(modelElement);
+            });
+            
+            return true;
+        } else {
+            showErrorToast('Failed to load models: ' + (data.error || 'Unknown error'));
+            return false;
+        }
+    } catch (error) {
+        showErrorToast('Error loading models: ' + error.message);
+        return false;
+    }
+}
+
+// Function to save model selection
+async function saveModelSelection() {
+    if (!currentModel) return true;
+    
+    try {
+        const response = await fetch('/api/set-model', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: currentModel
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showSuccessToast(`Model set to ${currentModel}`);
+            return true;
+        } else {
+            showErrorToast('Failed to set model: ' + (data.error || 'Unknown error'));
+            return false;
+        }
+    } catch (error) {
+        showErrorToast('Error saving model: ' + error.message);
+        return false;
+    }
+}
+
+// Add model refresh button handler
+document.getElementById('refresh-models')?.addEventListener('click', loadModelOptions);
+
+// Update the openSettingsModal function to load model options
+function openSettingsModal() {
+    // Load existing code...
+    
+    // Load model options
+    loadModelOptions();
+    
+    document.getElementById('settings-modal').classList.add('modal-open');
+    document.getElementById('settings-backdrop').classList.add('modal-open');
+    
+    // Set focus to the first tab content
+    document.querySelector('.modal-tab-content.active').focus();
+}
+
+// Update saveSettingsModal to include model selection
+async function saveSettingsModal() {
+    // Handle model selection
+    await saveModelSelection();
+    
+    // Rest of the existing save logic...
+    
+    closeSettingsModal();
 } 
