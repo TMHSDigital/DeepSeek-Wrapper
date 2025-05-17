@@ -576,4 +576,47 @@ button.reset-btn:hover {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
+}
+
+/* Streaming content styles */
+.streaming-content {
+    position: relative;
+}
+
+.streaming-content::after {
+    content: '|';
+    display: inline-block;
+    color: var(--primary);
+    font-weight: bold;
+    margin-left: 2px;
+    animation: cursor-blink 1s infinite step-end;
+}
+
+@keyframes cursor-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* Code block styles for streaming content */
+.content pre {
+    background: var(--bg-light);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 10px 0;
+    border: 1px solid var(--border-light);
+}
+
+.content code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+/* Inline code */
+.content :not(pre) > code {
+    background: var(--bg-light);
+    padding: 2px 4px;
+    border-radius: 3px;
+    color: var(--primary-dark);
+    font-size: 0.9em;
 } 

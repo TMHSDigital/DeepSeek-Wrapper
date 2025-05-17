@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Form, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -7,6 +7,8 @@ from deepseek_wrapper import DeepSeekClient, DeepSeekConfig
 import os
 from datetime import datetime
 import markdown as md
+import json
+import asyncio
 
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET_KEY", "supersecret"))
@@ -111,4 +113,67 @@ async def upload_file(file: UploadFile = File(...), request: Request = None):
             "timestamp": now_str()
         })
         request.session["history"] = history
-    return JSONResponse({"filename": file.filename, "content_type": file.content_type}) 
+    return JSONResponse({"filename": file.filename, "content_type": file.content_type})
+
+@app.post("/chat/stream")
+async def chat_stream(request: Request):
+    """Stream chat responses using Server-Sent Events."""
+    try:
+        # Get form data from request
+        form_data = await request.form()
+        user_message = form_data.get("user_message")
+        
+        if not user_message:
+            return JSONResponse({"error": "No message provided"}, status_code=400)
+        
+        # Get history from session
+        history = request.session.get("history", [])
+        
+        # Add user message to history
+        user_msg = {"role": "user", "content": user_message, "timestamp": now_str()}
+        history.append(user_msg)
+        
+        # Update session with user message
+        request.session["history"] = history
+        
+        # Create an event stream generator
+        async def event_generator():
+            # Send user message confirmation first
+            yield f"data: {json.dumps({'type': 'user_msg_received', 'message': user_msg})}\n\n"
+            await asyncio.sleep(0.1)  # Small delay to allow frontend rendering
+            
+            # Start assistant message
+            assistant_msg = {"role": "assistant", "content": "", "timestamp": now_str()}
+            yield f"data: {json.dumps({'type': 'assistant_msg_start', 'message': assistant_msg})}\n\n"
+            
+            try:
+                # Start streaming response
+                collected_content = []
+                async for content_chunk in client.async_chat_completion_stream(history):
+                    # Add chunk to the collected content
+                    collected_content.append(content_chunk)
+                    assistant_msg["content"] = ''.join(collected_content)
+                    
+                    # Send the chunk to the client
+                    yield f"data: {json.dumps({'type': 'content_chunk', 'chunk': content_chunk})}\n\n"
+                    
+                # Stream is complete - update the history in the session
+                complete_msg = {"role": "assistant", "content": ''.join(collected_content), "timestamp": now_str()}
+                history.append(complete_msg)
+                request.session["history"] = history
+                
+                # Send completion message
+                yield f"data: {json.dumps({'type': 'complete', 'message': complete_msg})}\n\n"
+            except Exception as e:
+                # Handle errors during streaming
+                error_msg = str(e)
+                yield f"data: {json.dumps({'type': 'error', 'error': error_msg})}\n\n"
+                
+                # Add error message to history
+                error_response = f"Error: {error_msg}"
+                history.append({"role": "assistant", "content": error_response, "timestamp": now_str()})
+                request.session["history"] = history
+        
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500) 

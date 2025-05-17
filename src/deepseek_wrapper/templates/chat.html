@@ -25,32 +25,164 @@
     }
     function sendChat() {
         var btn = document.getElementById('send-btn');
-        var form = document.getElementById('chat-form');
         var input = document.getElementById('user_message');
         var sendingStatus = document.getElementById('sending-status');
+        var chatHistory = document.getElementById('chat-history');
         
+        if (!input.value.trim()) return;
+        
+        // Disable button and show sending indicator
         if (btn) btn.disabled = true;
         if (sendingStatus) sendingStatus.style.display = 'block';
         
-        // Add the user message to the chat immediately
-        var chatHistory = document.getElementById('chat-history');
-        var userMsg = document.createElement('div');
-        userMsg.className = 'msg-row user';
-        userMsg.innerHTML = `
-            <div class="avatar">
-                <span class="avatar-letter">U</span>
-            </div>
-            <div class="bubble user-msg">
-                <span class="role">User</span>
-                <span class="timestamp">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}</span><br>
-                <span class="content" style="display:block;">${input.value}</span>
-            </div>
-        `;
-        chatHistory.appendChild(userMsg);
-        scrollChat();
+        // Create form data for the request
+        const formData = new FormData();
+        formData.append('user_message', input.value);
         
-        form.submit();
-        setTimeout(function() { if (input) input.value = ''; }, 100);
+        // Clear input immediately
+        const userMessage = input.value;
+        input.value = '';
+        
+        // Create and handle the EventSource for streaming
+        const eventSource = new EventSource(`/chat/stream?_=${Date.now()}`, {
+            withCredentials: true
+        });
+        
+        let assistantMsgElement = null;
+        
+        eventSource.addEventListener('message', function(e) {
+            try {
+                const data = JSON.parse(e.data);
+                
+                switch(data.type) {
+                    case 'user_msg_received':
+                        // Add user message to chat UI
+                        const userMsgHtml = `
+                            <div class="msg-row user">
+                                <div class="avatar">
+                                    <span class="avatar-letter">U</span>
+                                </div>
+                                <div class="bubble user-msg">
+                                    <span class="role">User</span>
+                                    <span class="timestamp">${data.message.timestamp}</span><br>
+                                    <span class="content" style="display:block;">${data.message.content}</span>
+                                    <div class="message-actions">
+                                        <button class="action-btn copy-btn" onclick="copyMessage(this)">
+                                            <span class="action-tooltip">Copy</span>
+                                            📋
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        chatHistory.insertAdjacentHTML('beforeend', userMsgHtml);
+                        scrollChat();
+                        break;
+                        
+                    case 'assistant_msg_start':
+                        // Create the assistant message container but with empty content
+                        const assistantMsgHtml = `
+                            <div class="msg-row assistant">
+                                <div class="avatar">
+                                    <span class="avatar-letter">A</span>
+                                </div>
+                                <div class="bubble assistant-msg">
+                                    <span class="role">Assistant</span>
+                                    <span class="timestamp">${data.message.timestamp}</span><br>
+                                    <span class="content streaming-content" style="display:block;"></span>
+                                    <div class="message-actions">
+                                        <button class="action-btn copy-btn" onclick="copyMessage(this)">
+                                            <span class="action-tooltip">Copy</span>
+                                            📋
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        chatHistory.insertAdjacentHTML('beforeend', assistantMsgHtml);
+                        assistantMsgElement = chatHistory.querySelector('.streaming-content');
+                        scrollChat();
+                        break;
+                        
+                    case 'content_chunk':
+                        // Append the chunk to the content
+                        if (assistantMsgElement) {
+                            const chunk = data.chunk;
+                            
+                            // Convert markdown on-the-fly (simplified)
+                            // Full markdown rendering would be more complex and might cause flickering
+                            // For better results, we should accumulate content and render after streaming completes
+                            if (assistantMsgElement.innerHTML === '') {
+                                assistantMsgElement.innerHTML = chunk;
+                            } else {
+                                assistantMsgElement.innerHTML += chunk;
+                            }
+                            
+                            scrollChat();
+                        }
+                        break;
+                        
+                    case 'complete':
+                        // Streaming is complete, close the connection
+                        eventSource.close();
+                        if (assistantMsgElement) {
+                            // Re-render the complete message with proper markdown
+                            const markdownContent = renderMarkdown(data.message.content);
+                            assistantMsgElement.innerHTML = markdownContent;
+                            assistantMsgElement.classList.remove('streaming-content');
+                        }
+                        sendingStatus.style.display = 'none';
+                        btn.disabled = false;
+                        break;
+                        
+                    case 'error':
+                        // Handle error
+                        eventSource.close();
+                        const errorBanner = document.createElement('div');
+                        errorBanner.className = 'error-banner';
+                        errorBanner.textContent = data.error;
+                        chatHistory.parentNode.insertBefore(errorBanner, chatHistory.nextSibling);
+                        
+                        sendingStatus.style.display = 'none';
+                        btn.disabled = false;
+                        break;
+                }
+            } catch (error) {
+                console.error("Error processing event:", error);
+            }
+        });
+        
+        eventSource.addEventListener('error', function(e) {
+            console.error('EventSource error:', e);
+            eventSource.close();
+            sendingStatus.style.display = 'none';
+            btn.disabled = false;
+            
+            // Show error message
+            const errorBanner = document.createElement('div');
+            errorBanner.className = 'error-banner';
+            errorBanner.textContent = "Connection error. Please try again.";
+            chatHistory.parentNode.insertBefore(errorBanner, chatHistory.nextSibling);
+        });
+    }
+    
+    // Simplified markdown renderer for streaming chunks
+    function renderMarkdown(text) {
+        // Basic markdown formatting (very simplified)
+        // Replace with a proper markdown library in production
+        text = text
+            // Code blocks
+            .replace(/```(\w*)([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+            // Bold
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            // Italic
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            // Links
+            .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>')
+            // Line breaks
+            .replace(/\n/g, '<br>');
+            
+        return text;
     }
     </script>
 </head>
@@ -59,7 +191,7 @@
         <h1>DeepSeek Chat</h1>
         <button id="theme-toggle" class="theme-toggle" title="Toggle theme (Alt+T)" aria-label="Toggle dark/light theme">☀️</button>
         <button id="export-btn" class="export-btn" title="Export conversation (Alt+E)" aria-label="Export conversation">📥 Export</button>
-        <form id="chat-form" method="post" action="/chat" autocomplete="off" onsubmit="sendChat(); return false;">
+        <form id="chat-form" method="post" onsubmit="sendChat(); return false;">
             <textarea id="user_message" name="user_message" placeholder="Type your message... (Enter to send, Shift+Enter for newline)" required rows="2" onkeydown="handleKey(event)" aria-label="Message input"></textarea>
             <button id="send-btn" type="submit" {% if loading %}disabled{% endif %} aria-label="Send message">Send</button>
             <button type="button" onclick="document.getElementById('reset-form').submit();" class="reset-btn" aria-label="Reset conversation">Reset</button>

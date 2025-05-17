@@ -109,4 +109,60 @@ class DeepSeekClient:
         except DeepSeekAuthError:
             raise
         except Exception as e:
+            raise DeepSeekAPIError(str(e))
+
+    @retry()
+    async def async_chat_completion_stream(self, messages: list, **kwargs) -> str:
+        """Stream chat completion from DeepSeek."""
+        payload = {
+            "model": kwargs.get("model", "deepseek-chat"),
+            "messages": messages,
+            "max_tokens": kwargs.get("max_tokens", 256),
+            "stream": True,  # Enable streaming
+            **{k: v for k, v in kwargs.items() if k not in ("model", "max_tokens", "stream")},
+        }
+        url = f"{self.config.base_url}/chat/completions"
+        try:
+            async with self._async_client.stream('POST', url, json=payload, headers=self._headers) as resp:
+                if resp.status_code == 401:
+                    raise DeepSeekAuthError("Invalid or missing API key.")
+                resp.raise_for_status()
+                
+                # Process the streaming response
+                collected_chunks = []
+                async for chunk in resp.aiter_text():
+                    if chunk.strip():
+                        # Parse the chunk (might need to adjust based on DeepSeek's actual streaming format)
+                        # Assuming format is similar to OpenAI's format
+                        if chunk.startswith('data: '):
+                            chunk = chunk[6:]  # Remove 'data: ' prefix
+                        
+                        # Check for the end of the stream
+                        if chunk.strip() == '[DONE]':
+                            break
+                        
+                        try:
+                            import json
+                            chunk_data = json.loads(chunk)
+                            # Extract the delta content from the chunk response
+                            if 'choices' in chunk_data and len(chunk_data['choices']) > 0:
+                                if 'delta' in chunk_data['choices'][0] and 'content' in chunk_data['choices'][0]['delta']:
+                                    content = chunk_data['choices'][0]['delta']['content']
+                                    collected_chunks.append(content)
+                                    yield content
+                        except json.JSONDecodeError:
+                            # Skip if it's not valid JSON
+                            continue
+                        except Exception as e:
+                            # Log any other errors but continue
+                            print(f"Error processing chunk: {e}")
+                            continue
+                
+                # Return the full response joined together
+                return ''.join(collected_chunks)
+        except httpx.HTTPStatusError as e:
+            raise DeepSeekAPIError(f"HTTP error: {e.response.status_code} {e.response.text}")
+        except DeepSeekAuthError:
+            raise
+        except Exception as e:
             raise DeepSeekAPIError(str(e)) 
