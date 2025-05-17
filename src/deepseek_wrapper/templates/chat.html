@@ -2,7 +2,11 @@
 <html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeepSeek Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
     <script>
     function scrollChat() {
@@ -16,6 +20,7 @@
     window.onload = function() {
         scrollChat();
         focusInput();
+        autoResizeTextarea(document.getElementById('user_message'));
     };
     function handleKey(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -23,32 +28,45 @@
             sendChat();
         }
     }
+    function autoResizeTextarea(textarea) {
+        if (!textarea) return;
+        textarea.style.height = 'auto'; // Temporarily shrink to get scrollHeight
+        let newHeight = textarea.scrollHeight;
+        const maxHeight = parseInt(getComputedStyle(textarea).maxHeight);
+        if (maxHeight && newHeight > maxHeight) {
+            newHeight = maxHeight;
+            textarea.style.overflowY = 'auto';
+        } else {
+            textarea.style.overflowY = 'hidden';
+        }
+        textarea.style.height = newHeight + 'px';
+    }
     function sendChat() {
         var btn = document.getElementById('send-btn');
         var input = document.getElementById('user_message');
         var sendingStatus = document.getElementById('sending-status');
         var chatHistory = document.getElementById('chat-history');
+        var emptyChatDiv = document.querySelector('.empty-chat');
         
         if (!input.value.trim()) return;
+        if (emptyChatDiv) emptyChatDiv.style.display = 'none'; // Hide empty chat message
         
-        // Disable button and show sending indicator
         if (btn) btn.disabled = true;
         if (sendingStatus) sendingStatus.style.display = 'block';
         
-        // Create form data for the request
         const formData = new FormData();
         formData.append('user_message', input.value);
         
-        // Clear input immediately
         const userMessage = input.value;
         input.value = '';
+        autoResizeTextarea(input); // Reset height after clearing
         
-        // Create and handle the EventSource for streaming
         const eventSource = new EventSource(`/chat/stream?_=${Date.now()}`, {
             withCredentials: true
         });
         
         let assistantMsgElement = null;
+        let currentAssistantBubble = null;
         
         eventSource.addEventListener('message', function(e) {
             try {
@@ -56,22 +74,20 @@
                 
                 switch(data.type) {
                     case 'user_msg_received':
-                        // Add user message to chat UI
                         const userMsgHtml = `
                             <div class="msg-row user">
-                                <div class="avatar">
-                                    <span class="avatar-letter">U</span>
-                                </div>
                                 <div class="bubble user-msg">
-                                    <span class="role">User</span>
-                                    <span class="timestamp">${data.message.timestamp}</span><br>
-                                    <span class="content" style="display:block;">${data.message.content}</span>
+                                    <span class="content">${data.message.content.replace(/\n/g, '<br>')}</span>
+                                    <span class="timestamp">${data.message.timestamp}</span>
                                     <div class="message-actions">
-                                        <button class="action-btn copy-btn" onclick="copyMessage(this)">
+                                        <button class="action-btn copy-btn" onclick="copyMessage(this)" aria-label="Copy message">
                                             <span class="action-tooltip">Copy</span>
-                                            📋
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                                         </button>
                                     </div>
+                                </div>
+                                <div class="avatar">
+                                    <span class="avatar-letter">U</span>
                                 </div>
                             </div>
                         `;
@@ -80,71 +96,65 @@
                         break;
                         
                     case 'assistant_msg_start':
-                        // Create the assistant message container but with empty content
                         const assistantMsgHtml = `
                             <div class="msg-row assistant">
                                 <div class="avatar">
                                     <span class="avatar-letter">A</span>
                                 </div>
                                 <div class="bubble assistant-msg">
-                                    <span class="role">Assistant</span>
-                                    <span class="timestamp">${data.message.timestamp}</span><br>
-                                    <span class="content streaming-content" style="display:block;"></span>
-                                    <div class="message-actions">
-                                        <button class="action-btn copy-btn" onclick="copyMessage(this)">
+                                    <span class="content streaming-content"></span>
+                                    <span class="timestamp">${data.message.timestamp}</span>
+                                     <div class="message-actions">
+                                        <button class="action-btn copy-btn" onclick="copyMessage(this)" aria-label="Copy message">
                                             <span class="action-tooltip">Copy</span>
-                                            📋
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         `;
                         chatHistory.insertAdjacentHTML('beforeend', assistantMsgHtml);
-                        assistantMsgElement = chatHistory.querySelector('.streaming-content');
+                        currentAssistantBubble = chatHistory.lastElementChild.querySelector('.bubble');
+                        assistantMsgElement = currentAssistantBubble.querySelector('.streaming-content');
+                        // Update timestamp after bubble is created
+                        currentAssistantBubble.querySelector('.timestamp').textContent = data.message.timestamp;
                         scrollChat();
                         break;
                         
                     case 'content_chunk':
-                        // Append the chunk to the content
                         if (assistantMsgElement) {
                             const chunk = data.chunk;
-                            
-                            // Convert markdown on-the-fly (simplified)
-                            // Full markdown rendering would be more complex and might cause flickering
-                            // For better results, we should accumulate content and render after streaming completes
-                            if (assistantMsgElement.innerHTML === '') {
-                                assistantMsgElement.innerHTML = chunk;
-                            } else {
-                                assistantMsgElement.innerHTML += chunk;
-                            }
-                            
+                            assistantMsgElement.innerHTML += chunk.replace(/\n/g, '<br>');
                             scrollChat();
                         }
                         break;
                         
                     case 'complete':
-                        // Streaming is complete, close the connection
                         eventSource.close();
                         if (assistantMsgElement) {
-                            // Re-render the complete message with proper markdown
-                            const markdownContent = renderMarkdown(data.message.content);
-                            assistantMsgElement.innerHTML = markdownContent;
+                            const finalContent = renderMarkdown(data.message.content);
+                            assistantMsgElement.innerHTML = finalContent;
                             assistantMsgElement.classList.remove('streaming-content');
+                        }
+                        if(currentAssistantBubble){
+                            currentAssistantBubble.querySelector('.timestamp').textContent = data.message.timestamp;
                         }
                         sendingStatus.style.display = 'none';
                         btn.disabled = false;
+                        focusInput();
                         break;
                         
                     case 'error':
-                        // Handle error
                         eventSource.close();
                         const errorBanner = document.createElement('div');
                         errorBanner.className = 'error-banner';
-                        errorBanner.textContent = data.error;
-                        chatHistory.parentNode.insertBefore(errorBanner, chatHistory.nextSibling);
+                        errorBanner.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> ${data.error}`;
+                        document.querySelector('.chat-container').appendChild(errorBanner); // Append to chat container
+                        setTimeout(() => errorBanner.remove(), 5000); // Auto-remove after 5s
                         
                         sendingStatus.style.display = 'none';
                         btn.disabled = false;
+                        focusInput();
                         break;
                 }
             } catch (error) {
@@ -157,126 +167,163 @@
             eventSource.close();
             sendingStatus.style.display = 'none';
             btn.disabled = false;
-            
-            // Show error message
+            focusInput();
             const errorBanner = document.createElement('div');
             errorBanner.className = 'error-banner';
-            errorBanner.textContent = "Connection error. Please try again.";
-            chatHistory.parentNode.insertBefore(errorBanner, chatHistory.nextSibling);
+            errorBanner.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Connection error. Please try again.`;
+            document.querySelector('.chat-container').appendChild(errorBanner);
+            setTimeout(() => errorBanner.remove(), 5000);
         });
     }
     
-    // Simplified markdown renderer for streaming chunks
     function renderMarkdown(text) {
-        // Basic markdown formatting (very simplified)
-        // Replace with a proper markdown library in production
+        text = text.replace(/\n/g, '<br>');
+        // Simplified: In a real app, use a library like Marked.js or DOMPurify after Marked.js
         text = text
-            // Code blocks
-            .replace(/```(\w*)([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-            // Bold
+            .replace(/```(\w*?)<br>([\s\S]*?)<br>```/g, (match, lang, code) => `<pre><code class="language-${lang || ''}">${code.replace(/<br>/g, '\n')}</code></pre>`)
+            .replace(/`([^`]+?)`/g, '<code>$1</code>')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            // Italic
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            // Links
-            .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>')
-            // Line breaks
-            .replace(/\n/g, '<br>');
-            
+            .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
         return text;
     }
     </script>
 </head>
 <body>
     <div class="container">
-        <h1>DeepSeek Chat</h1>
-        <button id="theme-toggle" class="theme-toggle" title="Toggle theme (Alt+T)" aria-label="Toggle dark/light theme">☀️</button>
-        <button id="export-btn" class="export-btn" title="Export conversation (Alt+E)" aria-label="Export conversation">📥 Export</button>
-        <form id="chat-form" method="post" onsubmit="sendChat(); return false;">
-            <textarea id="user_message" name="user_message" placeholder="Type your message... (Enter to send, Shift+Enter for newline)" required rows="2" onkeydown="handleKey(event)" aria-label="Message input"></textarea>
-            <button id="send-btn" type="submit" {% if loading %}disabled{% endif %} aria-label="Send message">Send</button>
-            <button type="button" onclick="document.getElementById('reset-form').submit();" class="reset-btn" aria-label="Reset conversation">Reset</button>
-        </form>
-        <form id="reset-form" method="post" action="/reset" style="display:none;"></form>
-        <form id="upload-form" enctype="multipart/form-data" style="margin-top:10px;">
-            <input type="file" id="file-input" name="file" accept="image/*,.pdf,.txt,.doc,.docx" />
-            <button id="upload-btn" type="submit">Upload File</button>
-            <progress id="upload-progress" value="0" max="100" style="display:none;width:120px;"></progress>
-            <span id="upload-status" style="margin-left:10px;"></span>
-            <div id="image-preview" style="margin-top:10px;"></div>
-        </form>
-        <div id="upload-area" class="upload-area">
-            <div class="upload-area-icon">📤</div>
-            <div class="upload-area-text">Drop files here to upload</div>
-        </div>
-        <div class="chat-container">
+        <header class="top-bar">
+            <h1 class="app-title">DeepSeek Chat</h1>
+            <div class="top-actions">
+                <button id="export-btn" class="export-btn" title="Export conversation (Alt+E)" aria-label="Export conversation">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Export</span>
+                </button>
+                <button id="theme-toggle" class="theme-toggle" title="Toggle theme (Alt+T)" aria-label="Toggle dark/light theme">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="light-icon"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dark-icon" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                </button>
+            </div>
+        </header>
+        <main class="chat-container">
             <div id="chat-history" class="chat-history">
                 {% if messages %}
                     {% for msg in messages %}
                         <div class="msg-row {{ msg.role }}">
+                            {% if msg.role == 'assistant' %}
                             <div class="avatar">
-                                <span class="avatar-letter">{% if msg.role == 'user' %}U{% else %}A{% endif %}</span>
+                                <span class="avatar-letter">A</span>
                             </div>
+                            {% endif %}
                             <div class="bubble {{ msg.role }}-msg">
-                                <span class="role">{{ msg.role.title() }}</span>
-                                <span class="timestamp">{{ msg.timestamp }}</span><br>
-                                <span class="content" style="display:block;">{{ msg.content_html|safe }}</span>
+                                <!-- <span class="role">{{ msg.role.title() }}</span> -->
+                                <span class="content">{{ msg.content_html|safe }}</span>
+                                <span class="timestamp">{{ msg.timestamp }}</span>
                                 <div class="message-actions">
-                                    <button class="action-btn copy-btn" onclick="copyMessage(this)">
+                                    <button class="action-btn copy-btn" onclick="copyMessage(this)" aria-label="Copy message">
                                         <span class="action-tooltip">Copy</span>
-                                        📋
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                                     </button>
                                 </div>
                             </div>
+                            {% if msg.role == 'user' %}
+                            <div class="avatar">
+                                <span class="avatar-letter">U</span>
+                            </div>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 {% else %}
                     <div class="empty-chat">
-                        <div class="empty-chat-icon">💬</div>
+                        <div class="empty-chat-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.056 3 11.61c0 1.64.506 3.192 1.397 4.512L3 20.25l5.25-1.837A8.963 8.963 0 0 0 12 20.25z"></path></svg>
+                        </div>
                         <h2>Welcome to DeepSeek Chat</h2>
-                        <p>Type a message below to start a conversation with the AI assistant. You can also upload files or paste images to share them.</p>
+                        <p>Type a message or upload a file to begin.</p>
                     </div>
                 {% endif %}
                 {% if loading %}
-                    <div class="msg-row assistant">
+                    <div class="msg-row assistant loading-placeholder">
                         <div class="avatar">
                             <span class="avatar-letter">A</span>
                         </div>
                         <div class="bubble assistant-msg loading-bubble">
                             <div class="typing-indicator">
-                                <span class="typing-dot"></span>
-                                <span class="typing-dot"></span>
-                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
                             </div>
                         </div>
                     </div>
                 {% endif %}
-                <div id="sending-status" class="sending-indicator" style="display:none;"></div>
             </div>
-            <div id="scroll-bottom" class="scroll-bottom-btn" title="Scroll to bottom">↓</div>
+            <div id="scroll-bottom" class="scroll-bottom-btn" title="Scroll to bottom">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+        </main>
+
+        <form id="chat-form" method="post" onsubmit="sendChat(); return false;">
+            <textarea id="user_message" name="user_message" placeholder="Type your message... (Shift+Enter for newline)" required rows="1" oninput="autoResizeTextarea(this)" onkeydown="handleKey(event)" aria-label="Message input"></textarea>
+            <button id="send-btn" type="submit" {% if loading %}disabled{% endif %} aria-label="Send message">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+            <button type="button" onclick="document.getElementById('reset-form').submit();" class="reset-btn" aria-label="Reset conversation">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
+            </button>
+        </form>
+        <form id="reset-form" method="post" action="/reset" style="display:none;"></form>
+        
+        <form id="upload-form" enctype="multipart/form-data">
+            <label for="file-input">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"></path></svg>
+                Attach File
+            </label>
+            <input type="file" id="file-input" name="file" accept="image/*,.pdf,.txt,.doc,.docx" />
+            <button id="upload-btn" type="submit" style="display:none;">Upload File</button> <!-- Hidden, triggered by JS if needed or label click -->
+            <progress id="upload-progress" value="0" max="100" style="display:none;"></progress>
+            <span id="upload-status"></span>
+            <div id="image-preview"></div>
+        </form>
+        <div id="sending-status" class="sending-indicator" style="display:none;"></div>
+
+        <div id="upload-area" class="upload-area">
+            <div class="upload-area-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </div>
+            <div class="upload-area-text">Drop files here or click to select</div>
         </div>
-        {% if error %}
-        <div class="error-banner">{{ error }}</div>
-        {% endif %}
     </div>
     <script>
+    // Theme Toggle, Scroll, Copy, Export, Drag/Drop, Keyboard shortcuts - existing JS
     const uploadForm = document.getElementById('upload-form');
-    const uploadBtn = document.getElementById('upload-btn');
+    const fileInput = document.getElementById('file-input');
+    const uploadBtn = document.getElementById('upload-btn'); // Though hidden, might be used by JS
     const uploadProgress = document.getElementById('upload-progress');
     const uploadStatus = document.getElementById('upload-status');
     const imagePreview = document.getElementById('image-preview');
-    uploadForm.onsubmit = async function(e) {
-        e.preventDefault();
-        const input = document.getElementById('file-input');
-        if (!input.files.length) { uploadStatus.textContent = 'No file selected'; return; }
-        const file = input.files[0];
+
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            uploadStatus.textContent = `Selected: ${this.files[0].name}`;
+            uploadProgress.style.display = 'block';
+            // Automatically submit form on file selection
+            submitUploadForm(); 
+        }
+    });
+
+    async function submitUploadForm() {
+        if (!fileInput.files.length) { 
+            uploadStatus.textContent = 'No file selected'; 
+            uploadProgress.style.display = 'none';
+            return; 
+        }
+        const file = fileInput.files[0];
         const formData = new FormData();
         formData.append('file', file);
-        uploadBtn.disabled = true;
+
+        // Visually indicate upload start, even if button is hidden
         uploadStatus.textContent = 'Uploading...';
-        uploadProgress.style.display = 'inline-block';
         uploadProgress.value = 0;
+        uploadProgress.style.display = 'block';
         imagePreview.innerHTML = '';
-        // Use XMLHttpRequest for progress
+
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/upload', true);
         xhr.upload.onprogress = function(e) {
@@ -285,82 +332,80 @@
             }
         };
         xhr.onload = function() {
-            uploadBtn.disabled = false;
-            uploadProgress.style.display = 'none';
+            uploadProgress.style.display = 'none'; // Hide progress after completion/error
             if (xhr.status === 200) {
                 const data = JSON.parse(xhr.responseText);
-                uploadStatus.textContent = 'Uploaded: ' + data.filename;
+                uploadStatus.textContent = '✓ Uploaded: ' + data.filename.substring(0,25)+(data.filename.length > 25 ? '...' : '');
                 if (data.content_type.startsWith('image/')) {
                     const url = '/uploads/' + data.filename;
-                    imagePreview.innerHTML = `<img src="${url}" alt="${data.filename}" style="max-width:200px;max-height:120px;" />`;
+                    imagePreview.innerHTML = `<img src="${url}" alt="${data.filename}" />`;
                 }
+                // Add file message to chat history via SSE or similar mechanism if desired
+                // For now, just confirm upload
             } else {
-                uploadStatus.textContent = 'Upload failed';
+                uploadStatus.textContent = '✗ Upload failed';
             }
-            input.value = '';
+            // Reset file input for next upload
+            fileInput.value = ''; 
+            // Hide status after a few seconds
+            setTimeout(() => { 
+                if (!fileInput.files.length) uploadStatus.textContent = ''; 
+                imagePreview.innerHTML = '';
+            }, 4000);
         };
         xhr.onerror = function() {
-            uploadBtn.disabled = false;
             uploadProgress.style.display = 'none';
-            uploadStatus.textContent = 'Upload failed';
+            uploadStatus.textContent = '✗ Upload failed (network error)';
+            fileInput.value = '';
+            setTimeout(() => { 
+                if (!fileInput.files.length) uploadStatus.textContent = '';
+                imagePreview.innerHTML = ''; 
+            }, 4000);
         };
         xhr.send(formData);
+    }
+    
+    uploadForm.onsubmit = async function(e) { 
+        e.preventDefault(); 
+        submitUploadForm();
     };
+
     // Image paste support
     document.getElementById('user_message').addEventListener('paste', async function(e) {
         const items = e.clipboardData.items;
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.indexOf('image') !== -1) {
                 const file = items[i].getAsFile();
-                const formData = new FormData();
-                formData.append('file', file);
-                uploadBtn.disabled = true;
-                uploadStatus.textContent = 'Uploading pasted image...';
-                uploadProgress.style.display = 'inline-block';
-                uploadProgress.value = 0;
-                imagePreview.innerHTML = '';
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', '/upload', true);
-                xhr.upload.onprogress = function(e) {
-                    if (e.lengthComputable) {
-                        uploadProgress.value = (e.loaded / e.total) * 100;
-                    }
-                };
-                xhr.onload = function() {
-                    uploadBtn.disabled = false;
-                    uploadProgress.style.display = 'none';
-                    if (xhr.status === 200) {
-                        const data = JSON.parse(xhr.responseText);
-                        uploadStatus.textContent = 'Image pasted and uploaded: ' + data.filename;
-                        if (data.content_type.startsWith('image/')) {
-                            const url = '/uploads/' + data.filename;
-                            imagePreview.innerHTML = `<img src="${url}" alt="${data.filename}" style="max-width:200px;max-height:120px;" />`;
-                        }
-                    } else {
-                        uploadStatus.textContent = 'Upload failed';
-                    }
-                };
-                xhr.onerror = function() {
-                    uploadBtn.disabled = false;
-                    uploadProgress.style.display = 'none';
-                    uploadStatus.textContent = 'Upload failed';
-                };
-                xhr.send(formData);
-                e.preventDefault();
+                if (file) {
+                    // Use a DataTransfer object to set files on the input
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    fileInput.files = dataTransfer.files;
+                    // Trigger change event to start upload
+                    fileInput.dispatchEvent(new Event('change'));
+                    e.preventDefault(); // Prevent pasting image data into textarea
+                    break; // Handle first image found
+                }
             }
         }
     });
-    // Reset the sending indicator on page load (response received)
+
+    // Auto-resize textarea on input
+    document.getElementById('user_message').addEventListener('input', function() {
+        autoResizeTextarea(this);
+    });
+    
     window.addEventListener('DOMContentLoaded', function() {
         var sendingStatus = document.getElementById('sending-status');
         if (sendingStatus) sendingStatus.style.display = 'none';
+        // Initial resize for any pre-filled content (unlikely here, but good practice)
+        autoResizeTextarea(document.getElementById('user_message'));
     });
-    const chatHistory = document.getElementById('chat-history');
+    const chatHistoryElem = document.getElementById('chat-history');
     const scrollBottomBtn = document.getElementById('scroll-bottom');
     
-    // Show/hide scroll button based on scroll position
-    chatHistory.addEventListener('scroll', function() {
-        const isScrolledUp = chatHistory.scrollTop < chatHistory.scrollHeight - chatHistory.clientHeight - 50;
+    chatHistoryElem.addEventListener('scroll', function() {
+        const isScrolledUp = chatHistoryElem.scrollTop < chatHistoryElem.scrollHeight - chatHistoryElem.clientHeight - 100; // Increased threshold
         if (isScrolledUp) {
             scrollBottomBtn.classList.add('visible');
         } else {
@@ -368,40 +413,49 @@
         }
     });
     
-    // Scroll to bottom when button is clicked
     scrollBottomBtn.addEventListener('click', function() {
-        chatHistory.scrollTop = chatHistory.scrollHeight;
+        chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
     });
     
-    // Scroll to bottom on load
     function scrollChat() {
-        if (chatHistory) chatHistory.scrollTop = chatHistory.scrollHeight;
-        
-        // Check if we need to show the scroll button
-        const isScrolledUp = chatHistory.scrollTop < chatHistory.scrollHeight - chatHistory.clientHeight - 50;
-        if (isScrolledUp) {
+        if (chatHistoryElem) chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+        // Check if we need to show the scroll button after new message
+        const isScrolledUp = chatHistoryElem.scrollTop < chatHistoryElem.scrollHeight - chatHistoryElem.clientHeight - 100;
+        if (isScrolledUp && chatHistoryElem.scrollHeight > chatHistoryElem.clientHeight) { // Only if scrollable
             scrollBottomBtn.classList.add('visible');
+        } else {
+            scrollBottomBtn.classList.remove('visible');
         }
     }
-    // Copy message content
     function copyMessage(button) {
-        const content = button.closest('.bubble').querySelector('.content').innerText;
-        navigator.clipboard.writeText(content).then(function() {
-            // Show temporary success indicator
+        const contentEl = button.closest('.bubble').querySelector('.content');
+        // Create a temporary div to get innerText without HTML tags from markdown
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = contentEl.innerHTML.replace(/<br\s*\/?>/ig, '\n'); // Convert <br> to newlines for copy
+        const textToCopy = tempDiv.innerText || tempDiv.textContent || '';
+
+        navigator.clipboard.writeText(textToCopy).then(function() {
             const tooltip = button.querySelector('.action-tooltip');
             tooltip.textContent = 'Copied!';
+            button.classList.add('copied');
             setTimeout(function() {
                 tooltip.textContent = 'Copy';
-            }, 2000);
+                button.classList.remove('copied');
+            }, 1500);
         }).catch(function(err) {
             console.error('Could not copy text: ', err);
+            const tooltip = button.querySelector('.action-tooltip');
+            tooltip.textContent = 'Error!';
+            setTimeout(function() {
+                tooltip.textContent = 'Copy';
+            }, 1500);
         });
     }
-    // Theme toggle
     const themeToggle = document.getElementById('theme-toggle');
     const htmlElement = document.documentElement;
+    const lightIcon = themeToggle.querySelector('.light-icon');
+    const darkIcon = themeToggle.querySelector('.dark-icon');
     
-    // Check for saved theme preference or use preferred color scheme
     const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     setTheme(savedTheme);
     
@@ -414,35 +468,33 @@
     
     function setTheme(theme) {
         htmlElement.setAttribute('data-theme', theme);
-        themeToggle.textContent = theme === 'light' ? '☀️' : '🌙';
-        themeToggle.title = theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
+        if (theme === 'light') {
+            lightIcon.style.display = 'inline-block';
+            darkIcon.style.display = 'none';
+        } else {
+            lightIcon.style.display = 'none';
+            darkIcon.style.display = 'inline-block';
+        }
     }
-    // Add JavaScript for drag-and-drop and export functionality
-    // Drag and drop file upload
     const uploadArea = document.getElementById('upload-area');
-    const fileInput = document.getElementById('file-input');
+    // const fileInput = document.getElementById('file-input'); // Already defined
     
-    // Show upload area when dragging over the page
     document.addEventListener('dragover', function(e) {
         e.preventDefault();
         uploadArea.classList.add('visible');
     });
     
     document.addEventListener('dragleave', function(e) {
-        if (!e.relatedTarget || e.relatedTarget.tagName === 'HTML') {
+        // Check if the leave event is truly leaving the window/document or just moving over child elements
+        if (!e.relatedTarget || e.relatedTarget.nodeName === 'HTML') {
             uploadArea.classList.remove('visible');
+        } else if (e.clientX === 0 && e.clientY === 0) { // Heuristic for leaving window
+             uploadArea.classList.remove('visible');
         }
     });
-    
-    // Handle drop
-    uploadArea.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        this.classList.add('drag-over');
-    });
-    
-    uploadArea.addEventListener('dragleave', function(e) {
-        this.classList.remove('drag-over');
-    });
+        
+    uploadArea.addEventListener('dragover', function(e) { /* e.preventDefault(); is in global */ this.classList.add('drag-over'); });
+    uploadArea.addEventListener('dragleave', function() { this.classList.remove('drag-over'); });
     
     uploadArea.addEventListener('drop', function(e) {
         e.preventDefault();
@@ -451,88 +503,52 @@
         
         if (e.dataTransfer.files.length) {
             fileInput.files = e.dataTransfer.files;
-            // Trigger the upload process
-            const event = new Event('change');
-            fileInput.dispatchEvent(event);
-            document.getElementById('upload-form').requestSubmit();
+            fileInput.dispatchEvent(new Event('change')); // Trigger upload
         }
     });
     
-    // Click on upload area to select files
-    uploadArea.addEventListener('click', function() {
-        fileInput.click();
-    });
+    uploadArea.addEventListener('click', function() { fileInput.click(); });
     
-    // Export conversation
     document.getElementById('export-btn').addEventListener('click', function() {
         const messages = Array.from(document.querySelectorAll('.msg-row'));
-        let text = '# DeepSeek Chat Export\n\n';
-        
+        let text = `# DeepSeek Chat Export - ${new Date().toLocaleString()}\n\n`;
         messages.forEach(msg => {
-            const role = msg.querySelector('.role').textContent;
-            const content = msg.querySelector('.content').textContent;
+            const isUser = msg.classList.contains('user');
+            const role = isUser ? 'User' : 'Assistant';
+            const contentEl = msg.querySelector('.content');
             const time = msg.querySelector('.timestamp').textContent;
             
-            text += `## ${role} (${time})\n\n${content}\n\n`;
+            // Create a temporary div to get innerText without HTML tags from markdown
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = contentEl.innerHTML.replace(/<br\s*\/?>/ig, '\n'); // Convert <br> to newlines
+            const content = tempDiv.innerText || tempDiv.textContent || '';
+            
+            text += `## ${role} (${time})\n\n${content.trim()}\n\n---\n\n`;
         });
         
-        // Create download link
-        const blob = new Blob([text], { type: 'text/markdown' });
+        const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `deepseek-chat-export-${new Date().toISOString().slice(0, 10)}.md`;
+        a.download = `deepseek-chat-export-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.md`;
+        document.body.appendChild(a); // Required for Firefox
         a.click();
-        
-        // Clean up
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
     });
     
-    // Add keyboard shortcut handling
     document.addEventListener('keydown', function(e) {
-        // Alt+T for theme toggle
-        if (e.altKey && e.key === 't') {
-            e.preventDefault();
-            document.getElementById('theme-toggle').click();
-        }
-        
-        // Alt+E for export
-        if (e.altKey && e.key === 'e') {
-            e.preventDefault();
-            document.getElementById('export-btn').click();
-        }
-        
-        // Alt+U to focus upload
-        if (e.altKey && e.key === 'u') {
-            e.preventDefault();
-            document.getElementById('file-input').focus();
-        }
-        
-        // Alt+S to focus on message input
-        if (e.altKey && e.key === 's') {
-            e.preventDefault();
-            document.getElementById('user_message').focus();
-        }
-        
-        // Escape to dismiss the upload area if visible
+        if (e.altKey && e.key === 't') { e.preventDefault(); document.getElementById('theme-toggle').click(); }
+        if (e.altKey && e.key === 'e') { e.preventDefault(); document.getElementById('export-btn').click(); }
+        if (e.altKey && e.key === 'u') { e.preventDefault(); document.getElementById('file-input').click(); } // Updated to click label effectively
+        if (e.altKey && e.key === 's') { e.preventDefault(); document.getElementById('user_message').focus(); }
         if (e.key === 'Escape') {
-            const uploadArea = document.getElementById('upload-area');
-            if (uploadArea.classList.contains('visible')) {
-                uploadArea.classList.remove('visible');
-            }
+            if (uploadArea.classList.contains('visible')) uploadArea.classList.remove('visible');
         }
     });
     
-    // Add focus indicator for keyboard navigation
-    document.addEventListener('keyup', function(e) {
-        if (e.key === 'Tab') {
-            document.body.classList.add('keyboard-nav');
-        }
-    });
-    
-    document.addEventListener('mousedown', function() {
-        document.body.classList.remove('keyboard-nav');
-    });
+    document.addEventListener('keyup', function(e) { if (e.key === 'Tab') document.body.classList.add('keyboard-nav'); });
+    document.addEventListener('mousedown', function() { document.body.classList.remove('keyboard-nav'); });
     </script>
 </body>
 </html> 
