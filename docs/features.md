@@ -222,4 +222,27 @@ The system is designed to be easily extensible, allowing developers to create cu
 - Access real-time information for current events
 - Convert between units and currencies
 - Answer knowledge-based questions with factual data
+</div>
+
+### API Key Management and Tool Configuration
+
+<div style="padding: 20px; background: #f0fffc; border-radius: 8px; border-left: 4px solid #2EC4B6; margin-top: 20px;">
+The DeepSeek Wrapper provides an intuitive, user-friendly interface for managing API keys and configuring tools directly from the web UI. This feature allows users to enable, disable, and configure various AI tools without needing to edit configuration files manually.
+
+Key features of the tool configuration system:
+- **Integrated settings panel**: Configure tools directly from the chat interface
+- **Toggle controls**: Easily enable or disable individual tools
+- **Secure API key storage**: API keys are saved in the server's `.env` file, not in browser storage
+- **Immediate activation**: Tools become available as soon as API keys are saved
+- **Environment variable integration**: Configuration automatically updates environment variables
+
+The tool configuration panel is accessible from the settings menu and provides a complete overview of all available tools, their current status, and required API credentials. This makes it easy for users to manage which capabilities are available to the AI assistant.
+
+**Configuration options include:**
+- Web Search API keys for accessing real-time information
+- Weather API credentials for forecasts and current conditions
+- Email SMTP server settings for sending messages
+- Toggle controls for built-in tools that don't require API keys
+
+This user-friendly approach to tool configuration significantly improves the accessibility of advanced features, allowing non-technical users to fully utilize the AI's capabilities without developer assistance.
 </div> 

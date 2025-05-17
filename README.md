@@ -108,6 +108,14 @@ Below are screenshots showing the evolution of the DeepSeek Wrapper web UI and f
         <li><b>Custom tool creation system</b></li>
       </ul>
     </div>
+    <div style="flex: 1; min-width: 250px; border-left: 4px solid #2EC4B6; padding: 10px; background: #F0FFFC; margin: 5px 0;">
+      <h3 style="color: #2EC4B6; margin-top: 0;">API Key Management</h3>
+      <ul>
+        <li><b>Integrated settings panel</b></li>
+        <li><b>Secure API key storage in .env</b></li>
+        <li><b>Tool configuration UI</b></li>
+      </ul>
+    </div>
 </div>
 
 ## Web UI (FastAPI)
@@ -128,6 +136,7 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 - **Markdown rendering in assistant responses**
 - Loading indicator while waiting for LLM
 - Error banner for API issues
+- **Tool configuration in settings panel with API key management**
 
 For a comprehensive guide to using the web interface, see the [Web UI Guide](docs/web-ui-guide.md).
 

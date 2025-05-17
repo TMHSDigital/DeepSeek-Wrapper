@@ -138,6 +138,57 @@ Focus on writing efficient, readable code following best practices.
 Include error handling in your examples when appropriate.
 ```
 
+### Tool Configuration and API Keys
+
+The DeepSeek Wrapper includes several AI tools that can be configured through the settings panel:
+
+1. Click the settings icon in the top right corner
+2. Switch to the "Tools" tab
+3. Configure the available tools:
+   - Enable or disable specific tools using the toggle switches
+   - Enter API keys for tools that require external services
+   - Configure additional settings for each tool (e.g., SMTP server for email)
+
+![Tools Configuration](images/tools-config.png)
+
+#### Available Tools
+
+| Tool | Description | API Key Required |
+|------|-------------|------------------|
+| Web Search | Search the web for real-time information | Yes (WEBSEARCH_API_KEY) |
+| Weather | Get current weather and forecasts | Yes (WEATHER_API_KEY) |
+| Email | Compose and send emails | Yes (SMTP credentials) |
+| Calculator | Perform calculations | No |
+| Date & Time | Get current date and time information | No |
+
+#### API Key Management
+
+When you enter API keys in the tools configuration panel:
+
+1. The keys are saved securely in your local `.env` file
+2. Tools are automatically registered with the appropriate API keys
+3. The AI can immediately use the configured tools in your conversations
+
+This approach provides several benefits:
+- API keys are stored securely on your server, not in the browser
+- Configuration is persistent across server restarts
+- No need to manually edit configuration files
+- Tools can be easily enabled or disabled as needed
+
+> **Note**: The API keys are stored in plaintext in your `.env` file. Ensure this file has appropriate permissions and is included in your `.gitignore` to prevent accidental exposure.
+
+#### Using Tools in Conversations
+
+Once tools are configured, you can use them in your conversations by asking questions that require their functionality:
+
+- "What's the weather in Tokyo today?" (Weather tool)
+- "Search the web for the latest AI research papers" (Web Search tool)
+- "Help me draft an email to schedule a meeting" (Email tool)
+- "What is the square root of 144?" (Calculator tool)
+- "What's today's date?" (Date & Time tool)
+
+The AI will automatically use the appropriate tool when needed to answer your questions.
+
 ### Conversation Management
 
 - **Starting a new conversation**: Click the "New Chat" button
