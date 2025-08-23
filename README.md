@@ -3,7 +3,7 @@
 ---
 
 [![CI](https://github.com/TMHSDigital/DeepSeek-Wrapper/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TMHSDigital/DeepSeek-Wrapper/actions)
-[![Coverage Status](https://img.shields.io/badge/coverage-94%25-brightgreen)](https://github.com/TMHSDigital/DeepSeek-Wrapper)
+[![codecov](https://codecov.io/gh/TMHSDigital/DeepSeek-Wrapper/branch/main/graph/badge.svg)](https://codecov.io/gh/TMHSDigital/DeepSeek-Wrapper)
 [![License](https://img.shields.io/github/license/TMHSDigital/DeepSeek-Wrapper)](docs/LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 
