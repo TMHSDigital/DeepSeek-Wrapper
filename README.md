@@ -5,7 +5,7 @@
 [![CI](https://github.com/TMHSDigital/DeepSeek-Wrapper/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TMHSDigital/DeepSeek-Wrapper/actions)
 [![Coverage Status](https://img.shields.io/badge/coverage-94%25-brightgreen)](https://github.com/TMHSDigital/DeepSeek-Wrapper)
 [![License](https://img.shields.io/github/license/TMHSDigital/DeepSeek-Wrapper)](docs/LICENSE)
-[![Python Versions](https://img.shields.io/pypi/pyversions/requests.svg)](https://www.python.org/downloads/)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 
 [![Issues](https://img.shields.io/github/issues/TMHSDigital/DeepSeek-Wrapper)](https://github.com/TMHSDigital/DeepSeek-Wrapper/issues)
 [![Pull Requests](https://img.shields.io/github/issues-pr/TMHSDigital/DeepSeek-Wrapper)](https://github.com/TMHSDigital/DeepSeek-Wrapper/pulls)
@@ -16,59 +16,20 @@
 
 ---
 
-<div align="center">
-  <h3>A modern, async/sync Python client for the DeepSeek LLM API.</h3>
-  <p>Supports completions, chat, retries, and robust error handling. Built for local dev, CI, and production.</p>
-</div>
+> A modern, async/sync Python client for the DeepSeek LLM API. Supports completions, chat, retries, and robust error handling. Built for local dev, CI, and production.
 
-<p align="center">
-  <img src="docs/images/ui-overview.png" alt="DeepSeek Wrapper UI" style="max-width: 800px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-</p>
+![DeepSeek Wrapper UI](docs/images/ui-overview.png)
 
 ## Documentation
 
-<table>
-  <tr>
-    <td width="33%" align="center">
-      <a href="docs/getting-started.md">
-        <b>Getting Started</b><br>
-        Quick setup guide
-      </a>
-    </td>
-    <td width="33%" align="center">
-      <a href="docs/web-ui-guide.md">
-        <b>Web UI Guide</b><br>
-        Guide to using the web interface
-      </a>
-    </td>
-    <td width="33%" align="center">
-      <a href="docs/features.md">
-        <b>Features</b><br>
-        Detailed feature list
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td width="33%" align="center">
-      <a href="docs/api-reference.md">
-        <b>API Reference</b><br>
-        API documentation for developers
-      </a>
-    </td>
-    <td width="33%" align="center">
-      <a href="docs/deployment.md">
-        <b>Deployment Guide</b><br>
-        Deployment options and configurations
-      </a>
-    </td>
-    <td width="33%" align="center">
-      <a href="docs/faq.md">
-        <b>FAQ</b><br>
-        Frequently asked questions
-      </a>
-    </td>
-  </tr>
-</table>
+| Doc | Description |
+| --- | --- |
+| [Getting Started](docs/getting-started.md) | Quick setup guide |
+| [Web UI Guide](docs/web-ui-guide.md) | Guide to using the web interface |
+| [Features](docs/features.md) | Detailed feature list |
+| [API Reference](docs/api-reference.md) | API documentation for developers |
+| [Deployment Guide](docs/deployment.md) | Deployment options and configurations |
+| [FAQ](docs/faq.md) | Frequently asked questions |
 
 For DeepSeek AI model capabilities, see [DeepSeek documentation](docs/deepseek-docs.md).
 
@@ -76,15 +37,11 @@ For DeepSeek AI model capabilities, see [DeepSeek documentation](docs/deepseek-d
 
 Below are screenshots showing the evolution of the DeepSeek Wrapper web UI and features over time:
 
-<p align="center">
-  <strong style="font-size:1.2em;">Pre-release</strong>
-</p>
-<p align="center">
-  <img src="versions/pre-release.png" alt="Pre-release UI" style="max-width: 600px; border-radius: 8px; box-shadow: 0 2px 8px #0002;">
-</p>
-<p align="center" style="font-size: 0.95em; color: #666;">
-  <em>Initial UI and feature set before public release.</em>
-</p>
+**Pre-release**
+
+![Pre-release UI](versions/pre-release.png)
+
+_Initial UI and feature set before public release._
 
 <!-- Add more screenshots here as you add new versions, e.g.:
 <p align="center">
@@ -98,46 +55,46 @@ Below are screenshots showing the evolution of the DeepSeek Wrapper web UI and f
 </p>
 -->
 
-<p align="center">
-  <strong style="font-size:1.2em;">Tool Status & Caching Panel</strong>
-</p>
-<p align="center">
-  <img src="docs/images/tool-status-panel.png" alt="Tool status and caching panel" style="max-width: 600px; border-radius: 8px; box-shadow: 0 2px 8px #0002;">
-</p>
-<p align="center" style="font-size: 0.95em; color: #666;">
-  <em>Enhanced tool status and caching panel: see per-tool status, cache stats, and manage tool caches directly from the UI.</em>
-</p>
+**Tool Status & Caching Panel**
+
+![Tool status and caching panel](docs/images/tool-status-panel.png)
+
+_See per-tool status, cache stats, and manage tool caches directly from the UI._
 
 ## Features
 
-<div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0;">
-    <div style="flex: 1; min-width: 250px; border-left: 4px solid #4A90E2; padding: 10px; background: #F5F9FF; margin: 5px 0;">    <h3 style="color: #4A90E2; margin-top: 0;">Modern API</h3>    <ul>      <li><b>Sync & async support</b></li>      <li><b>Type hints throughout</b></li>      <li><b>Clean error handling</b></li>    </ul>  </div>    <div style="flex: 1; min-width: 250px; border-left: 4px solid #50C878; padding: 10px; background: #F5FFF7; margin: 5px 0;">    <h3 style="color: #50C878; margin-top: 0;">Advanced Web UI</h3>    <ul>      <li><b>Session-based chat history</b></li>      <li><b>Markdown rendering</b></li>      <li><b>File uploads & processing</b></li>    </ul>  </div>    <div style="flex: 1; min-width: 250px; border-left: 4px solid #FF9E42; padding: 10px; background: #FFF8F0; margin: 5px 0;">    <h3 style="color: #FF9E42; margin-top: 0;">Real-Time Awareness</h3>    <ul>      <li><b>Current date & time information</b></li>      <li><b>Multiple formats (ISO, US, EU)</b></li>      <li><b>No external API required</b></li>    </ul>  </div>    <div style="flex: 1; min-width: 250px; border-left: 4px solid #FF6B6B; padding: 10px; background: #FFF5F5; margin: 5px 0;">    <h3 style="color: #FF6B6B; margin-top: 0;">Production Ready</h3>    <ul>      <li><b>Automatic retries with backoff</b></li>      <li><b>100% test coverage</b></li>      <li><b>Environment variable config</b></li>    </ul>  </div>
-    <div style="flex: 1; min-width: 250px; border-left: 4px solid #9D56F7; padding: 10px; background: #F9F0FF; margin: 5px 0;">
-      <h3 style="color: #9D56F7; margin-top: 0;">Function Calling</h3>
-      <ul>
-        <li><b>Tool integration framework</b></li>
-        <li><b>Built-in tools (Weather, Calculator)</b></li>
-        <li><b>Custom tool creation system</b></li>
-        <li><b>Tool status dashboard: visualize tool health, API key status, and cache performance in real time</b></li>
-      </ul>
-    </div>
-    <div style="flex: 1; min-width: 250px; border-left: 4px solid #2EC4B6; padding: 10px; background: #F0FFFC; margin: 5px 0;">
-      <h3 style="color: #2EC4B6; margin-top: 0;">API Key Management</h3>
-      <ul>
-        <li><b>Integrated settings panel</b></li>
-        <li><b>Secure API key storage in .env</b></li>
-        <li><b>Tool configuration UI</b></li>
-      </ul>
-    </div>
-    <div style="flex: 1; min-width: 250px; border-left: 4px solid #FF8C42; padding: 10px; background: #FFF4EC; margin: 5px 0;">
-      <h3 style="color: #FF8C42; margin-top: 0;">Coming Soon</h3>
-      <ul>
-        <li><b>Model selection (in development)</b></li>
-        <li><b>Custom model parameters</b></li>
-        <li><b>Model-specific optimizations</b></li>
-      </ul>
-    </div>
-</div>
+### Features
+
+#### Modern API
+- Sync & async support
+- Type hints throughout
+- Clean error handling
+
+#### Advanced Web UI
+- Session-based chat history
+- Markdown rendering
+- File uploads & processing
+
+#### Real-Time Awareness
+- Current date & time info
+- Multiple formats (ISO, US, EU)
+- No external API required
+
+#### Production Ready
+- Automatic retries with backoff
+- 94%+ test coverage
+- Environment variable config
+
+#### Function Calling
+- Tool integration framework
+- Built-in tools (Weather, Calculator)
+- Custom tool creation system
+- Tool status dashboard: visualize tool health, API key status, and cache performance in real time
+
+#### API Key Management
+- Integrated settings panel
+- Secure API key storage in .env
+- Tool configuration UI
 
 ## Web UI (FastAPI)
 
@@ -167,6 +124,16 @@ For a comprehensive guide to using the web interface, see the [Web UI Guide](doc
 ```bash
 pip install -r requirements.txt
 pip install -e .  # for local development
+```
+
+### Quickstart (Web UI)
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+"DEEPSEEK_API_KEY=sk-your-key" | Out-File -FilePath .env -Encoding ascii
+uvicorn src.deepseek_wrapper.web:app --reload
 ```
 
 For detailed installation instructions, see the [Getting Started Guide](docs/getting-started.md).
@@ -273,7 +240,8 @@ pytest --cov=src/deepseek_wrapper
 - [GitHub Repo](https://github.com/TMHSDigital/DeepSeek-Wrapper)
 
 ## License
-## Contributing
+
+Licensed under the Apache-2.0 license. See [docs/LICENSE](docs/LICENSE).
 
 ## Model Selection (Coming Soon)
 
