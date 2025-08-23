@@ -11,7 +11,15 @@
     <link rel="stylesheet" href="/static/settings-modal.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css">
     <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/lib/marked.umd.min.js"></script>
+    <script>
+    // Ensure marked is available globally
+    if (typeof marked === 'undefined') {
+        console.error('Marked.js failed to load!');
+    } else {
+        console.log('Marked.js loaded successfully, version available');
+    }
+    </script>
     <script src="/static/settings-modal.js"></script>
     <style>
     #scroll-bottom {
@@ -32,6 +40,9 @@
     }
     </style>
     <script>
+    // Test function to verify JavaScript is working
+    console.log('DeepSeek-Wrapper JavaScript loaded successfully');
+
     function scrollChat() {
         const chatHistoryElem = document.getElementById('chat-history');
         const scrollBottomBtn = document.getElementById('scroll-bottom');
@@ -63,8 +74,12 @@
             sendChat();
         }
     }
-    function autoResizeTextarea(textarea) {
-        if (!textarea) return;
+    // Make autoResizeTextarea globally available
+    window.autoResizeTextarea = function(textarea) {
+        if (!textarea) {
+            console.warn('autoResizeTextarea: textarea element not found');
+            return;
+        }
         textarea.style.height = 'auto'; // Temporarily shrink to get scrollHeight
         let newHeight = textarea.scrollHeight;
         const maxHeight = parseInt(getComputedStyle(textarea).maxHeight);
@@ -75,7 +90,11 @@
             textarea.style.overflowY = 'hidden';
         }
         textarea.style.height = newHeight + 'px';
-    }
+    };
+
+    // Verify function is available (debug-only)
+    // console.log('autoResizeTextarea function defined:', typeof window.autoResizeTextarea === 'function');
+
     function sendChat() {
         var btn = document.getElementById('send-btn');
         var input = document.getElementById('user_message');
@@ -143,13 +162,23 @@
                                     </span>
                                 </div>
                                 <div class="bubble assistant-msg">
-                                    <span class="content streaming-content" style="display: block;">
-                                        <div class="typing-indicator">
-                                            <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+                                    <div class="thinking-wrapper" data-expanded="false">
+                                        <div class="thinking-header">
+                                            <div class="thinking-title">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14s1-1 4-1 5 2 8 2 5-1 6-2"></path><path d="M5 17s1-1 4-1 5 2 8 2 5-1 6-2"></path><path d="M8 20s1-1 4-1 5 2 8 2 5-1 6-2"></path></svg>
+                                                <span>Thinking…</span>
+                                            </div>
+                                            <button class="thinking-toggle" aria-expanded="false" onclick="toggleThinking(this)">Show details</button>
                                         </div>
-                                    </span>
+                                        <div class="thinking-bar" role="progressbar" aria-busy="true" aria-label="Thinking in progress">
+                                            <div class="progress"></div>
+                                        </div>
+                                        <div class="thinking-details" hidden>
+                                            <span class="content streaming-content" style="display: block;"></span>
+                                        </div>
+                                    </div>
                                     <span class="timestamp"></span>
-                                     <div class="message-actions">
+                                    <div class="message-actions">
                                         <button class="action-btn copy-btn" onclick="copyMessage(this)" aria-label="Copy message">
                                             <span class="action-tooltip">Copy</span>
                                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -162,17 +191,32 @@
                         applyMessageGrouping();
                         const newAssistantRow = chatHistory.lastElementChild;
                         currentAssistantBubble = newAssistantRow.querySelector('.bubble.assistant-msg');
-                        assistantMsgElement = currentAssistantBubble.querySelector('.content.streaming-content');
+                        assistantMsgElement = currentAssistantBubble.querySelector('.thinking-details .content.streaming-content');
                         scrollChat();
                         break;
                         
                     case 'content_chunk':
                         if (assistantMsgElement) {
-                            if (assistantMsgElement.querySelector('.typing-indicator')) {
-                                assistantMsgElement.innerHTML = ''; 
-                            }
                             const chunk = data.chunk;
-                            assistantMsgElement.innerHTML += chunk.replace(/\n/g, '<br>');
+                            // Accumulate the full content for proper markdown rendering
+                            if (!assistantMsgElement.dataset.fullContent) {
+                                assistantMsgElement.dataset.fullContent = '';
+                            }
+                            assistantMsgElement.dataset.fullContent += chunk;
+
+                            // If details are expanded, live-render; otherwise keep progress bar only
+                            const thinkingWrapper = currentAssistantBubble.querySelector('.thinking-wrapper');
+                            const details = currentAssistantBubble.querySelector('.thinking-details');
+                            const isExpanded = thinkingWrapper && thinkingWrapper.getAttribute('data-expanded') === 'true';
+                            if (isExpanded) {
+                                try {
+                                    const renderedContent = renderMarkdown(assistantMsgElement.dataset.fullContent);
+                                    assistantMsgElement.innerHTML = renderedContent;
+                                } catch (error) {
+                                    console.warn('Markdown rendering error during streaming:', error);
+                                    assistantMsgElement.innerHTML = assistantMsgElement.dataset.fullContent.replace(/\n/g, '<br>');
+                                }
+                            }
                             scrollChat();
                         }
                         break;
@@ -180,12 +224,35 @@
                     case 'complete':
                         eventSource.close();
                         if (assistantMsgElement) {
-                            if (assistantMsgElement.querySelector('.typing-indicator')) {
-                                assistantMsgElement.innerHTML = '';
+                            // Use the accumulated content for final rendering (more reliable)
+                            const finalContent = assistantMsgElement.dataset.fullContent || data.message.content;
+
+                            // Ensure details section is visible when answer is complete
+                            const wrapper = currentAssistantBubble.querySelector('.thinking-wrapper');
+                            const details = currentAssistantBubble.querySelector('.thinking-details');
+                            if (wrapper && details){
+                                wrapper.setAttribute('data-expanded','true');
+                                details.hidden = false;
+                                const toggleBtn = currentAssistantBubble.querySelector('.thinking-toggle');
+                                if (toggleBtn){ toggleBtn.textContent = 'Hide details'; toggleBtn.setAttribute('aria-expanded','true'); }
+                                // Stop progress bar animation
+                                const bar = currentAssistantBubble.querySelector('.thinking-bar .progress');
+                                if (bar){ bar.style.animation = 'none'; bar.style.width = '100%'; }
+                                // Ensure no flashing in details while rendering
+                                const content = currentAssistantBubble.querySelector('.thinking-details .content.streaming-content');
+                                if (content){ content.classList.remove('streaming-content'); }
                             }
-                            const finalContent = renderMarkdown(data.message.content);
-                            assistantMsgElement.innerHTML = finalContent;
+
+                            try {
+                                const renderedContent = renderMarkdown(finalContent);
+                                assistantMsgElement.innerHTML = renderedContent;
+                            } catch (error) {
+                                console.warn('Final markdown rendering error:', error);
+                                assistantMsgElement.innerHTML = finalContent.replace(/\n/g, '<br>');
+                            }
                             assistantMsgElement.classList.remove('streaming-content');
+                            // Clean up the dataset
+                            delete assistantMsgElement.dataset.fullContent;
                         }
                         if(currentAssistantBubble){
                             currentAssistantBubble.querySelector('.timestamp').textContent = data.message.timestamp;
@@ -228,94 +295,191 @@
         });
     }
     
+    // Toggle thinking details expansion
+    function toggleThinking(btn){
+        const wrapper = btn.closest('.thinking-wrapper');
+        const expanded = wrapper.getAttribute('data-expanded') === 'true';
+        const details = wrapper.querySelector('.thinking-details');
+        wrapper.setAttribute('data-expanded', expanded ? 'false' : 'true');
+        btn.setAttribute('aria-expanded', (!expanded).toString());
+        btn.textContent = expanded ? 'Show details' : 'Hide details';
+        if (details){
+            if (expanded){
+                details.hidden = true;
+            } else {
+                details.hidden = false;
+            }
+        }
+    }
+
     function renderMarkdown(text) {
+        if (!text || typeof text !== 'string') {
+            console.log('renderMarkdown: invalid input', {text, type: typeof text});
+            return '';
+        }
+
+        console.log('renderMarkdown: processing text of length', text.length);
+
+        // Configure marked renderer for better handling of all elements
+        const renderer = new marked.Renderer();
+
+        // Custom heading renderer
+        renderer.heading = function(text, level) {
+            const sizes = {
+                1: '1.5em',
+                2: '1.3em',
+                3: '1.15em',
+                4: '1.1em',
+                5: '1em',
+                6: '1em'
+            };
+            const fontSize = sizes[level] || '1em';
+            return `<h${level} style="margin: 1em 0 0.5em 0; font-weight: 600; font-size: ${fontSize};">${text}</h${level}>\n`;
+        };
+
+        // Custom list renderer
+        renderer.list = function(body, ordered, start) {
+            const tag = ordered ? 'ol' : 'ul';
+            const attrs = ordered && start && start !== 1 ? ` start="${start}"` : '';
+            return `<${tag}${attrs}>\n${body}</${tag}>\n`;
+        };
+
+        renderer.listitem = function(text) {
+            return `<li>${text}</li>\n`;
+        };
+
+        // Custom paragraph renderer
+        renderer.paragraph = function(text) {
+            return `<p style="margin: 0.5em 0;">${text}</p>\n`;
+        };
+
+        // Custom strong/bold renderer
+        renderer.strong = function(text) {
+            return `<strong style="font-weight: 600;">${text}</strong>`;
+        };
+
+        // Custom emphasis renderer
+        renderer.em = function(text) {
+            return `<em style="font-style: italic;">${text}</em>`;
+        };
+
         // Configure Marked.js for enhanced markdown support
         marked.setOptions({
             gfm: true,
             breaks: true,
             headerIds: false,
             langPrefix: 'language-',
+            pedantic: false,
+            smartLists: true,
+            smartypants: true,
+            renderer: renderer,
             highlight: function(code, lang) {
                 // Use highlight.js for code syntax highlighting
                 if (window.hljs) {
-                    const language = window.hljs.getLanguage(lang) ? lang : 'plaintext';
-                    return window.hljs.highlight(code, { language }).value;
+                    try {
+                        const language = window.hljs.getLanguage(lang) ? lang : 'plaintext';
+                        return window.hljs.highlight(code, { language }).value;
+                    } catch (error) {
+                        console.warn('Code highlighting error:', error);
+                        return code;
+                    }
                 }
                 return code;
             }
         });
-        
-        // Parse Markdown to HTML
-        const html = marked.parse(text);
-        
-        // Add container for processing
-        const container = document.createElement('div');
-        container.innerHTML = html;
-        
-        // Add copy buttons to code blocks
-        container.querySelectorAll('pre').forEach(preBlock => {
-            // Create wrapper for the code block
-            const wrapper = document.createElement('div');
-            wrapper.className = 'code-block-wrapper';
-            
-            // Create copy button
-            const copyBtn = document.createElement('button');
-            copyBtn.className = 'code-copy-btn';
-            copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
-            copyBtn.setAttribute('aria-label', 'Copy code');
-            
-            // Create tooltip
-            const tooltip = document.createElement('span');
-            tooltip.className = 'code-copy-tooltip';
-            tooltip.textContent = 'Copy';
-            copyBtn.appendChild(tooltip);
-            
-            // Add click event to copy the code
-            copyBtn.addEventListener('click', function() {
-                const code = preBlock.querySelector('code').textContent;
-                navigator.clipboard.writeText(code)
-                    .then(() => {
-                        tooltip.textContent = 'Copied!';
-                        setTimeout(() => {
-                            tooltip.textContent = 'Copy';
-                        }, 2000);
-                    })
-                    .catch(err => {
-                        console.error('Failed to copy code: ', err);
-                    });
-            });
-            
-            // Create language label if language is specified
-            const codeBlock = preBlock.querySelector('code');
-            if (codeBlock && codeBlock.className.includes('language-')) {
-                const langClass = Array.from(codeBlock.classList).find(cl => cl.startsWith('language-'));
-                if (langClass) {
-                    const lang = langClass.replace('language-', '');
-                    if (lang && lang !== 'plaintext') {
-                        const langLabel = document.createElement('span');
-                        langLabel.className = 'code-lang-label';
-                        langLabel.textContent = lang;
-                        wrapper.appendChild(langLabel);
+
+        try {
+            // Parse Markdown to HTML
+            console.log('About to parse markdown text:', JSON.stringify(text));
+            console.log('Marked.js version:', marked.version);
+            console.log('Renderer functions:', Object.keys(renderer));
+
+            const html = marked.parse(text);
+            console.log('Parsed HTML result:', html);
+
+            // Add container for processing
+            const container = document.createElement('div');
+            container.innerHTML = html;
+
+            // Add copy buttons to code blocks
+            container.querySelectorAll('pre').forEach(preBlock => {
+                // Create wrapper for the code block
+                const wrapper = document.createElement('div');
+                wrapper.className = 'code-block-wrapper';
+
+                // Create copy button
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'code-copy-btn';
+                copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+                copyBtn.setAttribute('aria-label', 'Copy code');
+
+                // Create tooltip
+                const tooltip = document.createElement('span');
+                tooltip.className = 'code-copy-tooltip';
+                tooltip.textContent = 'Copy';
+                copyBtn.appendChild(tooltip);
+
+                // Add click event to copy the code
+                copyBtn.addEventListener('click', function() {
+                    const code = preBlock.querySelector('code').textContent;
+                    navigator.clipboard.writeText(code)
+                        .then(() => {
+                            tooltip.textContent = 'Copied!';
+                            setTimeout(() => {
+                                tooltip.textContent = 'Copy';
+                            }, 2000);
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy code: ', err);
+                        });
+                });
+
+                // Create language label if language is specified
+                const codeBlock = preBlock.querySelector('code');
+                if (codeBlock && codeBlock.className.includes('language-')) {
+                    const langClass = Array.from(codeBlock.classList).find(cl => cl.startsWith('language-'));
+                    if (langClass) {
+                        const lang = langClass.replace('language-', '');
+                        if (lang && lang !== 'plaintext') {
+                            const langLabel = document.createElement('span');
+                            langLabel.className = 'code-lang-label';
+                            langLabel.textContent = lang;
+                            wrapper.appendChild(langLabel);
+                        }
                     }
                 }
-            }
-            
-            // Add elements to DOM
-            wrapper.appendChild(copyBtn);
-            preBlock.parentNode.insertBefore(wrapper, preBlock);
-            wrapper.appendChild(preBlock);
-        });
-        
-        // Highlight code blocks after rendering
-        setTimeout(() => { 
-            if (window.hljs) {
-                document.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightBlock(block);
-                });
-            }
-        }, 0);
-        
-        return container.innerHTML;
+
+                // Add elements to DOM
+                wrapper.appendChild(copyBtn);
+                preBlock.parentNode.insertBefore(wrapper, preBlock);
+                wrapper.appendChild(preBlock);
+            });
+
+            // Highlight code blocks after rendering
+            setTimeout(() => {
+                if (window.hljs) {
+                    document.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightBlock(block);
+                    });
+                }
+            }, 0);
+
+            return container.innerHTML;
+        } catch (error) {
+            console.warn('Markdown rendering error:', error);
+            console.log('Falling back to basic formatting');
+            // Enhanced fallback to simple formatting
+            return text
+                .replace(/\n/g, '<br>')
+                .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                .replace(/^\d+\. (.*$)/gm, '<li>$1</li>')
+                .replace(/^- (.*$)/gm, '<li>• $1</li>');
+        }
     }
     // Settings functions - use the external implementation from settings-modal.js
     function openSettings() {

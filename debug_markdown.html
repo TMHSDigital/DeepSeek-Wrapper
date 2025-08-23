@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Markdown Debug Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/lib/marked.umd.min.js"></script>
+</head>
+<body>
+    <h1>Markdown Debug Test</h1>
+    <div id="test-results"></div>
+
+    <script>
+        function testMarkdownRendering() {
+            const testCases = [
+                "# Heading 1",
+                "## Heading 2",
+                "### Heading 3",
+                "**Bold text**",
+                "*Italic text*",
+                "1. First item\n2. Second item",
+                "- Bullet item\n- Another bullet",
+                "Normal paragraph with **bold** and *italic* text."
+            ];
+
+            const resultsDiv = document.getElementById('test-results');
+            let html = '<h2>Test Results:</h2>';
+
+            testCases.forEach((test, index) => {
+                html += `<h3>Test ${index + 1}: "${test.replace(/\n/g, '\\n')}"</h3>`;
+
+                try {
+                    // Test with default marked.js
+                    const defaultResult = marked.parse(test);
+                    html += `<p><strong>Default marked.js:</strong> ${defaultResult}</p>`;
+
+                    // Test with custom renderer
+                    const renderer = new marked.Renderer();
+
+                    renderer.heading = function(text, level) {
+                        return `<h${level}>${text}</h${level}>\n`;
+                    };
+
+                    renderer.list = function(token, body) {
+                        const ordered = token.ordered;
+                        const tag = ordered ? 'ol' : 'ul';
+                        return `<${tag}>\n${body}</${tag}>\n`;
+                    };
+
+                    renderer.listitem = function(text) {
+                        return `<li>${text}</li>\n`;
+                    };
+
+                    renderer.strong = function(text) {
+                        return `<strong>${text}</strong>`;
+                    };
+
+                    renderer.em = function(text) {
+                        return `<em>${text}</em>`;
+                    };
+
+                    marked.setOptions({ renderer });
+                    const customResult = marked.parse(test);
+                    html += `<p><strong>Custom renderer:</strong> ${customResult}</p>`;
+
+                } catch (error) {
+                    html += `<p><strong>Error:</strong> ${error.message}</p>`;
+                }
+
+                html += '<hr>';
+            });
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // Run test when page loads
+        window.onload = testMarkdownRendering;
+    </script>
+</body>
+</html>

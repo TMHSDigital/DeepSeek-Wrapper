@@ -39,6 +39,25 @@ Code snippets are displayed with syntax highlighting for better readability. You
 - Copy code blocks with a single click on the copy button
 - See the language identified in the top-right of each code block
 
+### Streaming UX: Safe Thinking Indicator (New)
+
+To reduce flashing and improve readability while the model is generating a response, the UI now uses a non-flashing "Thinking…" indicator:
+
+- A subtle progress bar communicates activity without strobing effects
+- A "Show details" toggle lets you expand a collapsible panel to view the live, streaming content
+- When expanded, all animations inside the details area are disabled to avoid visual flicker
+- On completion, the details panel auto-expands once, the bar fills, and animations remain off
+
+How to use:
+1. Send a message as usual
+2. While the model is thinking, click "Show details" to watch the response stream in real-time
+3. Click "Hide details" to collapse the panel and keep the conversation compact
+
+Accessibility notes:
+- The previous blinking cursor and animated dots have been removed to minimize potential seizure risks
+- The progress bar uses a gentle slide animation that is disabled when the details area is expanded
+- The indicator and controls are keyboard- and screen-reader-friendly (progressbar, aria-expanded)
+
 ### Uploading Files
 
 To provide context from a document:

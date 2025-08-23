@@ -156,6 +156,7 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 - Timestamps, avatars, and chat bubbles
 - **Markdown rendering in assistant responses**
 - Loading indicator while waiting for LLM
+- **Non‑flashing "Thinking…" indicator with progress bar and optional expandable live details (accessibility-friendly)**
 - Error banner for API issues
 - **Tool configuration in settings panel with API key management**
 
