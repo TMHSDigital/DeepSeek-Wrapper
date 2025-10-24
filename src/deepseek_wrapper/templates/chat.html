@@ -59,6 +59,32 @@
             scrollBottomBtn.classList.remove('visible');
         }
     }
+
+    // Date separators
+    function formatDateSeparator(ts){
+        const d = new Date(ts);
+        const today = new Date();
+        const isToday = d.toDateString() === today.toDateString();
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate()-1);
+        const isYesterday = d.toDateString() === yesterday.toDateString();
+        if (isToday) return 'Today';
+        if (isYesterday) return 'Yesterday';
+        return d.toLocaleDateString(undefined, { weekday:'long', month:'short', day:'numeric', year: d.getFullYear()!==today.getFullYear()? 'numeric': undefined });
+    }
+
+    function maybeInsertDateSeparator(container, ts){
+        const lastSep = container.querySelector('.date-separator:last-of-type');
+        const label = formatDateSeparator(ts);
+        const needs = !lastSep || lastSep.getAttribute('data-label') !== label;
+        if (needs){
+            const sep = document.createElement('div');
+            sep.className = 'date-separator';
+            sep.setAttribute('data-label', label);
+            sep.innerHTML = `<span>${label}</span>`;
+            container.appendChild(sep);
+        }
+    }
     function focusInput() {
         var input = document.getElementById('user_message');
         if (input) input.focus();
@@ -129,6 +155,7 @@
                 
                 switch(data.type) {
                     case 'user_msg_received':
+                        maybeInsertDateSeparator(chatHistory, Date.now());
                         const userMsgHtml = `
                             <div class="msg-row user" data-timestamp="${Date.now()}">
                                 <div class="bubble user-msg">
@@ -154,6 +181,8 @@
                         break;
                         
                     case 'assistant_msg_start':
+                        maybeInsertDateSeparator(chatHistory, Date.now());
+                        const thinkingId = `thinking-details-${Date.now()}-${Math.floor(Math.random()*1e6)}`;
                         const assistantMsgHtml = `
                             <div class="msg-row assistant" data-timestamp="${Date.now()}">
                                 <div class="avatar">
@@ -168,12 +197,12 @@
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14s1-1 4-1 5 2 8 2 5-1 6-2"></path><path d="M5 17s1-1 4-1 5 2 8 2 5-1 6-2"></path><path d="M8 20s1-1 4-1 5 2 8 2 5-1 6-2"></path></svg>
                                                 <span>Thinking…</span>
                                             </div>
-                                            <button class="thinking-toggle" aria-expanded="false" onclick="toggleThinking(this)">Show details</button>
+                                            <button class="thinking-toggle" aria-expanded="false" onclick="toggleThinking(this)" aria-controls="${thinkingId}">Show details</button>
                                         </div>
-                                        <div class="thinking-bar" role="progressbar" aria-busy="true" aria-label="Thinking in progress">
+                                        <div class="thinking-bar" role="progressbar" aria-busy="true" aria-label="Thinking in progress" aria-live="polite">
                                             <div class="progress"></div>
                                         </div>
-                                        <div class="thinking-details" hidden>
+                                        <div class="thinking-details" id="${thinkingId}" hidden>
                                             <span class="content streaming-content" style="display: block;"></span>
                                         </div>
                                     </div>
@@ -207,6 +236,14 @@
                             // If details are expanded, live-render; otherwise keep progress bar only
                             const thinkingWrapper = currentAssistantBubble.querySelector('.thinking-wrapper');
                             const details = currentAssistantBubble.querySelector('.thinking-details');
+                            // Remember expansion per session
+                            const expandedPref = sessionStorage.getItem('ds_thinking_expanded') === 'true';
+                            if (thinkingWrapper && expandedPref) {
+                                thinkingWrapper.setAttribute('data-expanded', 'true');
+                                details.hidden = false;
+                                const toggleBtn = currentAssistantBubble.querySelector('.thinking-toggle');
+                                if (toggleBtn){ toggleBtn.textContent = 'Hide details'; toggleBtn.setAttribute('aria-expanded','true'); }
+                            }
                             const isExpanded = thinkingWrapper && thinkingWrapper.getAttribute('data-expanded') === 'true';
                             if (isExpanded) {
                                 try {
@@ -256,6 +293,12 @@
                         }
                         if(currentAssistantBubble){
                             currentAssistantBubble.querySelector('.timestamp').textContent = data.message.timestamp;
+                            // Mark thinking bar complete and aria updates
+                            const thinkingBar = currentAssistantBubble.querySelector('.thinking-bar');
+                            if (thinkingBar) {
+                                thinkingBar.setAttribute('aria-busy','false');
+                                thinkingBar.setAttribute('aria-label','Thinking complete');
+                            }
                         }
                         applyMessageGrouping();
                         sendingStatus.style.display = 'none';
@@ -310,6 +353,8 @@
                 details.hidden = false;
             }
         }
+        // Persist preference this session
+        sessionStorage.setItem('ds_thinking_expanded', (!expanded).toString());
     }
 
     function renderMarkdown(text) {
@@ -318,7 +363,7 @@
             return '';
         }
 
-        console.log('renderMarkdown: processing text of length', text.length);
+        // Keep logs quiet in production UI
 
         // Configure marked renderer for better handling of all elements
         const renderer = new marked.Renderer();
@@ -390,12 +435,10 @@
 
         try {
             // Parse Markdown to HTML
-            console.log('About to parse markdown text:', JSON.stringify(text));
-            console.log('Marked.js version:', marked.version);
-            console.log('Renderer functions:', Object.keys(renderer));
+            // Minimal logging to avoid console noise
 
             const html = marked.parse(text);
-            console.log('Parsed HTML result:', html);
+            
 
             // Add container for processing
             const container = document.createElement('div');
@@ -501,6 +544,11 @@
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
     });
+
+    // Keyboard shortcut hints in tooltips
+    document.getElementById('export-btn')?.setAttribute('title','Export conversation (Alt+E)');
+    document.getElementById('theme-toggle')?.setAttribute('title','Toggle theme (Alt+T)');
+    document.getElementById('file-input')?.setAttribute('title','Attach file (Alt+U)');
     
     // Model indicator
     async function loadCurrentModel() {
@@ -509,7 +557,10 @@
             const data = await response.json();
             
             if (data.success) {
-                document.getElementById('current-model-indicator').textContent = data.current_model;
+                const indicator = document.getElementById('current-model-indicator');
+                indicator.textContent = data.current_model;
+                indicator.setAttribute('aria-live', 'polite');
+                indicator.setAttribute('title', `Current model: ${data.current_model}`);
             } else {
                 document.getElementById('current-model-indicator').textContent = 'Error';
             }
@@ -522,8 +573,8 @@
     // Load model on page load
     loadCurrentModel();
     
-    // Make model indicator clickable to open settings
-    document.querySelector('.model-indicator').addEventListener('click', function() {
+        // Make model indicator clickable to open settings (Model tab)
+        document.querySelector('.model-indicator').addEventListener('click', function() {
         // Open settings modal and switch to model tab
         openSettingsModal();
         
@@ -551,19 +602,22 @@
     <div class="container">
         <header class="top-bar">
             <h1 class="app-title">DeepSeek Wrapper</h1>
-            <div class="model-indicator" title="Current model">
+            <div class="model-indicator" title="Current model. Click to open Model settings">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2"></path><path d="M10 8.484C13.207 7.894 14 11.138 14 12.5c0 .469-.003 1.22-.933 1.916"></path><path d="M15 9.5a3.5 3.5 0 0 0-3-2 3.5 3.5 0 0 0-3 2"></path><path d="M9.5 15a3.5 3.5 0 0 0 5 0"></path></svg>
-                <span id="current-model-indicator">Loading...</span>
+                <span id="current-model-indicator" class="model-loading">
+                    <div class="model-spinner"></div>
+                    Loading...
+                </span>
             </div>
             <div class="top-actions">
-                <button id="export-btn" class="export-btn" title="Export conversation (Alt+E)" aria-label="Export conversation">
+                <button id="export-btn" class="export-btn" title="Export conversation (Alt+E)" aria-label="Export conversation" tabindex="0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     <span>Export</span>
                 </button>
-                <button id="settings-btn" class="theme-toggle" title="Settings" aria-label="Settings">
+                <button id="settings-btn" class="theme-toggle" title="Settings" aria-label="Settings" tabindex="0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 5 15.4a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 8c.14.31.22.65.22 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
-                <button id="theme-toggle" class="theme-toggle" title="Toggle theme (Alt+T)" aria-label="Toggle dark/light theme">
+                <button id="theme-toggle" class="theme-toggle" title="Toggle theme (Alt+T)" aria-label="Toggle dark/light theme" tabindex="0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="light-icon"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dark-icon" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                 </button>
@@ -608,7 +662,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.056 3 11.61c0 1.64.506 3.192 1.397 4.512L3 20.25l5.25-1.837A8.963 8.963 0 0 0 12 20.25z"></path></svg>
                         </div>
                         <h2>Welcome to DeepSeek Wrapper</h2>
-                        <p>Type a message or upload a file to begin.</p>
+                        <p>Ask a question, paste code, or attach a file to begin.</p>
                     </div>
                         {% endif %}
                 {% if loading %}
@@ -654,6 +708,7 @@
             <button id="upload-btn" type="submit" style="display:none;">Upload File</button> <!-- Hidden, triggered by JS if needed or label click -->
             <progress id="upload-progress" value="0" max="100" style="display:none;"></progress>
             <span id="upload-status"></span>
+            <div id="file-chips" class="file-chips"></div>
             <div id="image-preview"></div>
         </form>
         <div id="sending-status" class="sending-indicator" style="display:none;"></div>
@@ -673,15 +728,43 @@
     const uploadProgress = document.getElementById('upload-progress');
     const uploadStatus = document.getElementById('upload-status');
     const imagePreview = document.getElementById('image-preview');
+    const fileChips = document.getElementById('file-chips');
 
     fileInput.addEventListener('change', function() {
         if (this.files.length > 0) {
-            uploadStatus.textContent = `Selected: ${this.files[0].name}`;
+            const f = this.files[0];
+            uploadStatus.textContent = `Selected: ${f.name}`;
             uploadProgress.style.display = 'block';
+            // Render chip
+            renderFileChip(f);
             // Automatically submit form on file selection
             submitUploadForm(); 
         }
     });
+
+    function renderFileChip(file){
+        if (!fileChips) return;
+        fileChips.innerHTML = '';
+        const chip = document.createElement('div');
+        chip.className = 'file-chip';
+        const sizeKb = Math.max(1, Math.round(file.size/1024));
+        chip.innerHTML = `
+            <span class="name" title="${file.name}">${file.name}</span>
+            <span class="size">${sizeKb} KB</span>
+            <button class="remove" aria-label="Remove file" title="Remove">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        `;
+        chip.querySelector('button.remove').addEventListener('click', function(){
+            // Clear selection
+            fileInput.value = '';
+            uploadStatus.textContent = '';
+            uploadProgress.style.display = 'none';
+            imagePreview.innerHTML = '';
+            chip.remove();
+        });
+        fileChips.appendChild(chip);
+    }
 
     async function submitUploadForm() {
         if (!fileInput.files.length) { 
@@ -715,6 +798,8 @@
                     const url = '/uploads/' + data.filename;
                     imagePreview.innerHTML = `<img src="${url}" alt="${data.filename}" />`;
                 }
+                // Clear chips after successful upload
+                if (fileChips) fileChips.innerHTML = '';
                 // Add file message to chat history via SSE or similar mechanism if desired
                 // For now, just confirm upload
             } else {
@@ -847,17 +932,18 @@
         // Copy to clipboard
         navigator.clipboard.writeText(textToCopy)
             .then(() => {
-                // Show success feedback
                 const tooltip = button.querySelector('.action-tooltip');
                 const originalText = tooltip.textContent;
                 tooltip.textContent = 'Copied!';
                 tooltip.style.opacity = '1';
-                
-                // Reset tooltip after a delay
                 setTimeout(() => {
                     tooltip.textContent = originalText;
                     tooltip.style.opacity = '';
-                }, 2000);
+                }, 1200);
+                // Also show toast
+                if (typeof showToast === 'function') {
+                    showToast('Message copied');
+                }
             })
             .catch(err => {
                 console.error('Failed to copy text: ', err);
@@ -979,10 +1065,79 @@
         if (e.altKey && e.key === 'e') { e.preventDefault(); document.getElementById('export-btn').click(); }
         if (e.altKey && e.key === 'u') { e.preventDefault(); document.getElementById('file-input').click(); } // Updated to click label effectively
         if (e.altKey && e.key === 's') { e.preventDefault(); document.getElementById('user_message').focus(); }
+        if (e.ctrlKey && e.key.toLowerCase() === 'k') { e.preventDefault(); openSettingsModal(); }
         if (e.key === 'Escape') {
             if (uploadArea.classList.contains('visible')) uploadArea.classList.remove('visible');
         }
     });
+
+    // Basic toast system (ARIA live region)
+    (function initToasts(){
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        container.setAttribute('aria-live','polite');
+        container.setAttribute('role','status');
+    })();
+
+    // Minimal command palette overlay (Ctrl+K) for common actions
+    (function initPalette(){
+        const overlay = document.createElement('div');
+        overlay.id = 'cmdk-overlay';
+        overlay.style.cssText = 'position:fixed;inset:0;display:none;align-items:flex-start;justify-content:center;background:rgba(0,0,0,.35);z-index:10001;';
+        overlay.innerHTML = `
+            <div id="cmdk" role="dialog" aria-modal="true" aria-label="Command Palette" style="margin-top:10vh;background:var(--bg-main);color:var(--text-primary);border:1px solid var(--border-color);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.25);width:min(680px,90vw);overflow:hidden;">
+              <div style="padding:.75rem 1rem;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:.5rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input id="cmdk-input" placeholder="Type a command… (e.g., Settings, Theme, Export)" aria-label="Command input" style="flex:1;border:none;outline:none;background:transparent;color:inherit;font-size:1rem;" />
+                <span style="font-size:.75rem;color:var(--text-secondary);">Esc</span>
+              </div>
+              <div id="cmdk-list" style="max-height:50vh;overflow:auto;padding:.25rem 0;">
+              </div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        const actions = [
+            { id:'settings', label:'Open Settings', hint:'Ctrl+K, type: settings', run: () => openSettingsModal() },
+            { id:'model', label:'Open Model tab', hint:'Go to Model', run: () => { openSettingsModal(); document.querySelector('.modal-tab-btn[data-tab="model"]').click(); } },
+            { id:'theme', label:'Toggle Theme', hint:'Alt+T', run: () => document.getElementById('theme-toggle').click() },
+            { id:'export', label:'Export Conversation', hint:'Alt+E', run: () => document.getElementById('export-btn').click() },
+            { id:'focus', label:'Focus Input', hint:'Alt+S', run: () => document.getElementById('user_message').focus() },
+            { id:'clear', label:'Reset Conversation', hint:'Clear chat', run: () => document.getElementById('reset-form').submit() }
+        ];
+
+        function open(){ overlay.style.display='flex'; const input = document.getElementById('cmdk-input'); input.value=''; render(actions); setTimeout(()=>input.focus(), 0); }
+        function close(){ overlay.style.display='none'; }
+        function render(list){
+            const listEl = document.getElementById('cmdk-list');
+            listEl.innerHTML = '';
+            list.forEach(a => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.style.cssText = 'display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:.6rem 1rem;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-primary);cursor:pointer';
+                item.innerHTML = `<span>${a.label}</span><span style="font-size:.8rem;color:var(--text-secondary)">${a.hint}</span>`;
+                item.addEventListener('click', () => { a.run(); close(); });
+                item.addEventListener('mouseover', () => item.style.background = 'rgba(0,0,0,0.04)');
+                item.addEventListener('mouseout', () => item.style.background = 'transparent');
+                listEl.appendChild(item);
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                if (overlay.style.display === 'flex') close(); else open();
+            } else if (e.key === 'Escape' && overlay.style.display === 'flex') {
+                close();
+            }
+        });
+
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+        overlay.querySelector('#cmdk-input').addEventListener('input', function(){
+            const q = this.value.toLowerCase();
+            const filtered = actions.filter(a => a.label.toLowerCase().includes(q) || a.id.includes(q));
+            render(filtered);
+        });
+    })();
     
     document.addEventListener('keyup', function(e) { if (e.key === 'Tab') document.body.classList.add('keyboard-nav'); });
     document.addEventListener('mousedown', function() { document.body.classList.remove('keyboard-nav'); });

@@ -17,3 +17,4 @@ build/
 *.log 
 project_prompt.md
 api_key_links.md
+./uploads

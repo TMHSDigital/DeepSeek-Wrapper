@@ -15,7 +15,6 @@ setup(
         "python-dotenv>=1.0.1",
     ],
     python_requires=">=3.8",
-    include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",

@@ -369,6 +369,19 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
+// Toast convenience wrappers for consistent usage across app
+function showSuccessToast(message){
+    return showToast(message, 'success');
+}
+
+function showErrorToast(message){
+    return showToast(message, 'error');
+}
+
+function showWarnToast(message){
+    return showToast(message, 'warn');
+}
+
 // Function to load tool status information
 function loadToolStatus() {
     const statusContainer = document.getElementById('tool-status-container');
