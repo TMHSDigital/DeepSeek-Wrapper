@@ -238,6 +238,9 @@
                             const details = currentAssistantBubble.querySelector('.thinking-details');
                             // Remember expansion per session
                             const expandedPref = sessionStorage.getItem('ds_thinking_expanded') === 'true';
+                            if (!expandedPref && localStorage.getItem('ds_details_default') === 'true') {
+                                sessionStorage.setItem('ds_thinking_expanded','true');
+                            }
                             if (thinkingWrapper && expandedPref) {
                                 thinkingWrapper.setAttribute('data-expanded', 'true');
                                 details.hidden = false;
@@ -254,7 +257,15 @@
                                     assistantMsgElement.innerHTML = assistantMsgElement.dataset.fullContent.replace(/\n/g, '<br>');
                                 }
                             }
-                            scrollChat();
+                            // Auto-scroll behavior if enabled
+                            try {
+                                if (localStorage.getItem('ds_auto_scroll') === 'true') {
+                                    const chatHistoryElem = document.getElementById('chat-history');
+                                    chatHistoryElem.scrollTop = chatHistoryElem.scrollHeight;
+                                } else {
+                                    scrollChat();
+                                }
+                            } catch (_) { scrollChat(); }
                         }
                         break;
                         
@@ -355,6 +366,21 @@
         }
         // Persist preference this session
         sessionStorage.setItem('ds_thinking_expanded', (!expanded).toString());
+    }
+
+    function ensureHljs() {
+        return new Promise((resolve) => {
+            if (window.hljs) return resolve(true);
+            const existing = document.getElementById('hljs-script');
+            if (existing) { existing.addEventListener('load', () => resolve(true)); return; }
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js';
+            s.id = 'hljs-script';
+            s.defer = true;
+            s.onload = () => resolve(true);
+            s.onerror = () => resolve(false);
+            document.head.appendChild(s);
+        });
     }
 
     function renderMarkdown(text) {
@@ -498,11 +524,14 @@
                 wrapper.appendChild(preBlock);
             });
 
-            // Highlight code blocks after rendering
-            setTimeout(() => {
+            // Highlight code blocks after rendering (lazy-load hljs if needed)
+            setTimeout(async () => {
+                if (!window.hljs) {
+                    await ensureHljs();
+                }
                 if (window.hljs) {
                     document.querySelectorAll('pre code').forEach((block) => {
-                        hljs.highlightBlock(block);
+                        try { window.hljs.highlightBlock(block); } catch (_) {}
                     });
                 }
             }, 0);
@@ -626,6 +655,10 @@
         
         <main class="chat-container">
         <div id="chat-history" class="chat-history">
+                <button id="load-older" class="load-older" style="display:none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    Load older messages
+                </button>
                 {% if messages %}
             {% for msg in messages %}
                 <div class="msg-row {{ msg.role }}">
@@ -684,6 +717,16 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </div>
         </main>
+
+        <!-- Inline help (first-run) -->
+        <div id="first-run-help" class="first-run-help" hidden>
+            <div class="tips">
+                <span>Tips: Alt+T theme • Alt+E export • Ctrl+K palette • Shift+Enter newline</span>
+                <button id="dismiss-help" class="help-dismiss" aria-label="Dismiss help">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+        </div>
 
         <form id="chat-form" method="post" onsubmit="sendChat(); return false;">
             <textarea id="user_message" name="user_message" placeholder="Type your message... (Shift+Enter for newline)" required rows="1" oninput="autoResizeTextarea(this)" onkeydown="handleKey(event)" aria-label="Message input"></textarea>
@@ -860,6 +903,15 @@
         if (sendingStatus) sendingStatus.style.display = 'none';
         // Initial resize for any pre-filled content (unlikely here, but good practice)
         autoResizeTextarea(document.getElementById('user_message'));
+
+        // First-run inline help visibility
+        const helpSeen = localStorage.getItem('ds_help_seen') === 'true';
+        const help = document.getElementById('first-run-help');
+        if (help && !helpSeen) help.hidden = false;
+        document.getElementById('dismiss-help')?.addEventListener('click', function(){
+            localStorage.setItem('ds_help_seen','true');
+            help.hidden = true;
+        });
     });
     const chatHistoryElem = document.getElementById('chat-history');
     const scrollBottomBtn = document.getElementById('scroll-bottom');
@@ -1065,7 +1117,6 @@
         if (e.altKey && e.key === 'e') { e.preventDefault(); document.getElementById('export-btn').click(); }
         if (e.altKey && e.key === 'u') { e.preventDefault(); document.getElementById('file-input').click(); } // Updated to click label effectively
         if (e.altKey && e.key === 's') { e.preventDefault(); document.getElementById('user_message').focus(); }
-        if (e.ctrlKey && e.key.toLowerCase() === 'k') { e.preventDefault(); openSettingsModal(); }
         if (e.key === 'Escape') {
             if (uploadArea.classList.contains('visible')) uploadArea.classList.remove('visible');
         }
@@ -1077,6 +1128,40 @@
         if (!container) return;
         container.setAttribute('aria-live','polite');
         container.setAttribute('role','status');
+    })();
+
+    // Lightweight virtualization: hide older messages and reveal on demand
+    (function initVirtualization(){
+        const chat = document.getElementById('chat-history');
+        const btn = document.getElementById('load-older');
+        if (!chat || !btn) return;
+
+        function applyWindow(){
+            const items = Array.from(chat.querySelectorAll('.msg-row'));
+            if (items.length <= 50) {
+                btn.style.display = 'none';
+                items.forEach(el => el.style.display = '');
+                return;
+            }
+            // Show last 50, hide the rest
+            btn.style.display = '';
+            items.forEach((el, idx) => {
+                el.style.display = (idx < items.length - 50) ? 'none' : '';
+            });
+        }
+
+        // Initial
+        applyWindow();
+
+        // Reveal all on click
+        btn.addEventListener('click', () => {
+            Array.from(chat.querySelectorAll('.msg-row')).forEach(el => el.style.display = '');
+            btn.style.display = 'none';
+        });
+
+        // Re-apply after new messages
+        const mo = new MutationObserver(() => applyWindow());
+        mo.observe(chat, { childList: true });
     })();
 
     // Minimal command palette overlay (Ctrl+K) for common actions

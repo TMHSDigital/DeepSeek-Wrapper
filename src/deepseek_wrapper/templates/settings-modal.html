@@ -7,6 +7,8 @@
     
     <div class="modal-tabs">
         <button class="modal-tab-btn active" data-tab="general">General</button>
+        <button class="modal-tab-btn" data-tab="appearance">Appearance</button>
+        <button class="modal-tab-btn" data-tab="behavior">Behavior</button>
         <button class="modal-tab-btn" data-tab="model">Model</button>
         <button class="modal-tab-btn" data-tab="tools">Tools</button>
     </div>
@@ -27,6 +29,49 @@
             <div class="form-group">
                 <label for="settings-system-prompt">System Prompt</label>
                 <textarea id="settings-system-prompt" placeholder="Enter system prompt for the AI assistant"></textarea>
+            </div>
+        </div>
+
+        <!-- Appearance Tab -->
+        <div class="modal-tab-content" id="appearance-tab" tabindex="0">
+            <div class="form-group">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="appearance-compact-density">
+                    <span class="checkbox-label">Compact density</span>
+                    <div class="checkbox-description">Reduces paddings for a denser layout.</div>
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="appearance-show-timestamps">
+                    <span class="checkbox-label">Show timestamps</span>
+                    <div class="checkbox-description">Always show per-message timestamps.</div>
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="appearance-reduced-motion">
+                    <span class="checkbox-label">Prefer reduced motion</span>
+                    <div class="checkbox-description">Minimizes animations regardless of OS setting.</div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Behavior Tab -->
+        <div class="modal-tab-content" id="behavior-tab" tabindex="0">
+            <div class="form-group">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="behavior-auto-scroll">
+                    <span class="checkbox-label">Auto-scroll during streaming</span>
+                    <div class="checkbox-description">Keep view pinned to the latest message while streaming.</div>
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="behavior-details-default">
+                    <span class="checkbox-label">Expand thinking details by default</span>
+                    <div class="checkbox-description">Shows the reasoning details while the model thinks.</div>
+                </label>
             </div>
         </div>
         

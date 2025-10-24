@@ -18,6 +18,10 @@
     --border-color: #DEE2E6; /* Light gray border */
     --border-input-focus: var(--primary-light);
     --shadow-color: rgba(0, 0, 0, 0.05); /* Softer shadow */
+    /* Role-based tokens */
+    --bg-subtle: #F3F4F6;
+    --bg-hover: #ECEFF3;
+    --text-muted: #6B7280;
 
     --bubble-user-bg: var(--primary);
     --bubble-user-text: var(--text-on-primary);
@@ -37,6 +41,12 @@
     --max-width-content: 800px;
 
     --primary-rgb: 0, 122, 255;
+
+    /* Spacing tokens */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
 }
 
 /* Dark Theme */
@@ -59,6 +69,9 @@
     --border-color: #38383A; 
     --border-input-focus: var(--primary);
     --shadow-color: rgba(0, 0, 0, 0.2); 
+    --bg-subtle: #2A2A2C;
+    --bg-hover: #333336;
+    --text-muted: #9CA3AF;
 
     --bubble-user-bg: var(--primary);
     --bubble-user-text: var(--text-on-primary);
@@ -156,10 +169,10 @@ header.top-bar {
     display: flex;
     align-items: center;
     font-size: 0.85rem;
-    background-color: color-mix(in srgb, var(--primary) 6%, transparent);
+    background-color: var(--bg-subtle);
     border-radius: 20px;
     padding: 0.3rem 0.8rem;
-    color: var(--text-secondary);
+    color: var(--text-muted);
     margin-left: auto;
     margin-right: 1rem;
     transition: all 0.2s ease;
@@ -167,7 +180,7 @@ header.top-bar {
 }
 
 .model-indicator:hover {
-    background-color: color-mix(in srgb, var(--primary) 12%, transparent);
+    background-color: var(--bg-hover);
     cursor: pointer;
 }
 
@@ -227,6 +240,23 @@ header.top-bar {
     flex-direction: column;
     gap: 1em;
 }
+
+/* Virtualized history controls */
+.load-older {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+.load-older:hover { background: var(--bg-hover); }
+.load-older svg { opacity: 0.7; }
 
 /* Date separators */
 .date-separator {
@@ -405,6 +435,35 @@ button#send-btn:disabled {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     cursor: not-allowed;
     transform: none;
+}
+
+/* First-run help */
+.first-run-help {
+    max-width: var(--max-width-content);
+    width: 100%;
+    margin: 0 auto;
+    padding: 0.5rem 1rem 0;
+}
+.first-run-help .tips {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+    padding: 8px 12px;
+}
+.first-run-help .help-dismiss {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    width: 28px; height: 28px; border-radius: 6px;
+}
+.first-run-help .help-dismiss:hover {
+    background: rgba(0,0,0,0.05);
 }
 
 /* File Upload Label - Enhanced */
@@ -602,6 +661,17 @@ label[for="file-input"]:active {
     backdrop-filter: blur(8px);
 }
 
+/* Compact density */
+[data-density-compact="true"] .bubble {
+    padding: 0.625rem 0.75rem;
+}
+[data-density-compact="true"] form#chat-form {
+    padding: 0.75rem;
+}
+[data-density-compact="true"] #user_message {
+    min-height: 38px;
+}
+
 .bubble:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.12), 0 6px 16px rgba(0,0,0,0.06);
@@ -615,9 +685,9 @@ label[for="file-input"]:active {
 }
 
 .assistant-msg {
-    background: rgba(var(--primary-rgb), 0.06);
+    background: rgba(var(--primary-rgb), 0.05);
     color: var(--bubble-assistant-text);
-    border: 1px solid rgba(var(--primary-rgb), 0.12);
+    border: 1px solid rgba(var(--primary-rgb), 0.10);
     border-bottom-left-radius: 6px;
     margin-left: 0.5rem;
     backdrop-filter: blur(8px);
@@ -672,6 +742,11 @@ label[for="file-input"]:active {
     background-color: rgba(0,0,0,0.03);
     transition: background-color 0.2s, opacity 0.2s;
     opacity: 0.7;
+}
+
+/* Hide timestamps unless preference enabled */
+:root:not([data-show-timestamps="true"]) .timestamp {
+    display: none;
 }
 
 .bubble:hover .timestamp {
@@ -1134,6 +1209,18 @@ label:focus {
         transform: none !important;
     }
 }
+
+/* Reduced motion override via preference */
+[data-reduced-motion="true"] *,
+[data-reduced-motion="true"] *::before,
+[data-reduced-motion="true"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+}
+[data-reduced-motion="true"] .thinking-bar .progress { animation: none !important; }
+[data-reduced-motion="true"] .bubble:hover { transform: none !important; }
+[data-reduced-motion="true"] .action-btn:hover { transform: none !important; }
 
 /* High contrast support */
 @media (prefers-contrast: high) {

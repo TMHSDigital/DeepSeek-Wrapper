@@ -168,11 +168,25 @@ window.saveSettingsModal = async function() {
     const extractAnswerOnlyCheckbox = document.getElementById('extract-answer-only');
     const extractAnswerOnly = extractAnswerOnlyCheckbox ? extractAnswerOnlyCheckbox.checked : false;
     
+    // Appearance
+    const compact = document.getElementById('appearance-compact-density')?.checked || false;
+    const timestamps = document.getElementById('appearance-show-timestamps')?.checked || false;
+    const reducedMotion = document.getElementById('appearance-reduced-motion')?.checked || false;
+
+    // Behavior
+    const autoScroll = document.getElementById('behavior-auto-scroll')?.checked || false;
+    const detailsDefault = document.getElementById('behavior-details-default')?.checked || false;
+
     // Store in localStorage
     localStorage.setItem('ds_username', username);
     localStorage.setItem('ds_avatar', avatar);
     localStorage.setItem('ds_system_prompt', systemPrompt);
     localStorage.setItem('ds_extract_answer_only', extractAnswerOnly);
+    localStorage.setItem('ds_compact_density', compact);
+    localStorage.setItem('ds_show_timestamps', timestamps);
+    localStorage.setItem('ds_reduced_motion', reducedMotion);
+    localStorage.setItem('ds_auto_scroll', autoScroll);
+    localStorage.setItem('ds_details_default', detailsDefault);
     
     // Save extract_answer_only setting to config
     try {
@@ -210,6 +224,20 @@ function updateUIWithSettings() {
         el.textContent = localStorage.getItem('ds_avatar') || 'U';
     });
     
+    // Apply appearance prefs
+    const compact = localStorage.getItem('ds_compact_density') === 'true';
+    document.documentElement.toggleAttribute('data-density-compact', compact);
+
+    const showTimestamps = localStorage.getItem('ds_show_timestamps') === 'true';
+    document.documentElement.toggleAttribute('data-show-timestamps', showTimestamps);
+
+    const reducedMotion = localStorage.getItem('ds_reduced_motion') === 'true';
+    document.documentElement.toggleAttribute('data-reduced-motion', reducedMotion);
+
+    // Behavior defaults
+    const detailsDefault = localStorage.getItem('ds_details_default') === 'true';
+    if (detailsDefault) sessionStorage.setItem('ds_thinking_expanded','true');
+
     // Update hidden form fields if they exist
     const usernameHidden = document.getElementById('user_name_hidden');
     const avatarHidden = document.getElementById('user_avatar_hidden');
@@ -238,6 +266,24 @@ function loadSettings() {
     if (extractAnswerOnlyCheckbox) {
         extractAnswerOnlyCheckbox.checked = extractAnswerOnly;
     }
+
+    // Appearance + Behavior fields
+    const compact = localStorage.getItem('ds_compact_density') === 'true';
+    const timestamps = localStorage.getItem('ds_show_timestamps') === 'true';
+    const reducedMotion = localStorage.getItem('ds_reduced_motion') === 'true';
+    const autoScroll = localStorage.getItem('ds_auto_scroll') === 'true';
+    const detailsDefault = localStorage.getItem('ds_details_default') === 'true';
+
+    const compactEl = document.getElementById('appearance-compact-density');
+    const tsEl = document.getElementById('appearance-show-timestamps');
+    const rmEl = document.getElementById('appearance-reduced-motion');
+    const asEl = document.getElementById('behavior-auto-scroll');
+    const ddEl = document.getElementById('behavior-details-default');
+    if (compactEl) compactEl.checked = compact;
+    if (tsEl) tsEl.checked = timestamps;
+    if (rmEl) rmEl.checked = reducedMotion;
+    if (asEl) asEl.checked = autoScroll;
+    if (ddEl) ddEl.checked = detailsDefault;
     
     // Load API key status
     fetch('/api/key-status')
