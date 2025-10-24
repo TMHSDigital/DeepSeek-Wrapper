@@ -1,0 +1,5 @@
+recursive-include src/deepseek_wrapper/templates *
+recursive-include src/deepseek_wrapper/static *
+recursive-include email_templates *
+include README.md
+include LICENSE

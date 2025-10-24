@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/TMHSDigital/DeepSeek-Wrapper/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TMHSDigital/DeepSeek-Wrapper/actions)
 [![codecov](https://codecov.io/gh/TMHSDigital/DeepSeek-Wrapper/branch/main/graph/badge.svg)](https://codecov.io/gh/TMHSDigital/DeepSeek-Wrapper)
-[![License](https://img.shields.io/github/license/TMHSDigital/DeepSeek-Wrapper)](docs/LICENSE)
+[![License](https://img.shields.io/github/license/TMHSDigital/DeepSeek-Wrapper)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/TMHSDigital/DeepSeek-Wrapper/main.svg)](https://results.pre-commit.ci/latest/github/TMHSDigital/DeepSeek-Wrapper/main)
 [![Latest Release](https://img.shields.io/github/v/release/TMHSDigital/DeepSeek-Wrapper?logo=github)](https://github.com/TMHSDigital/DeepSeek-Wrapper/releases)
@@ -248,7 +248,7 @@ pytest --cov=src/deepseek_wrapper
 
 ## License
 
-Licensed under the Apache-2.0 license. See [docs/LICENSE](docs/LICENSE).
+Licensed under the Apache-2.0 license. See [LICENSE](LICENSE).
 
 ## Model Selection (Coming Soon)
 

@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
 Example script demonstrating function calling capabilities with DeepSeek Wrapper.
+"""Example: Using tools with DeepSeekClient.
 
+Run from repository root after installing deps:
+    python -m src.deepseek_wrapper.examples.tool_usage
+"""
 This script shows how to:
 1. Register and use tools with the DeepSeek client
 2. Create a conversation that can leverage tools
