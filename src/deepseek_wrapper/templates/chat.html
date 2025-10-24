@@ -1138,7 +1138,8 @@
 
         function applyWindow(){
             const items = Array.from(chat.querySelectorAll('.msg-row'));
-            if (items.length <= 50) {
+            const win = parseInt(localStorage.getItem('ds_history_window') || '50', 10);
+            if (items.length <= win) {
                 btn.style.display = 'none';
                 items.forEach(el => el.style.display = '');
                 return;
@@ -1146,7 +1147,7 @@
             // Show last 50, hide the rest
             btn.style.display = '';
             items.forEach((el, idx) => {
-                el.style.display = (idx < items.length - 50) ? 'none' : '';
+                el.style.display = (idx < items.length - win) ? 'none' : '';
             });
         }
 

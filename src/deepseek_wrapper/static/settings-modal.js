@@ -172,6 +172,7 @@ window.saveSettingsModal = async function() {
     const compact = document.getElementById('appearance-compact-density')?.checked || false;
     const timestamps = document.getElementById('appearance-show-timestamps')?.checked || false;
     const reducedMotion = document.getElementById('appearance-reduced-motion')?.checked || false;
+    const historyWindow = parseInt(document.getElementById('appearance-history-window')?.value || '50', 10);
 
     // Behavior
     const autoScroll = document.getElementById('behavior-auto-scroll')?.checked || false;
@@ -185,6 +186,7 @@ window.saveSettingsModal = async function() {
     localStorage.setItem('ds_compact_density', compact);
     localStorage.setItem('ds_show_timestamps', timestamps);
     localStorage.setItem('ds_reduced_motion', reducedMotion);
+    localStorage.setItem('ds_history_window', isNaN(historyWindow) ? 50 : historyWindow);
     localStorage.setItem('ds_auto_scroll', autoScroll);
     localStorage.setItem('ds_details_default', detailsDefault);
     
@@ -232,6 +234,7 @@ function updateUIWithSettings() {
     document.documentElement.toggleAttribute('data-show-timestamps', showTimestamps);
 
     const reducedMotion = localStorage.getItem('ds_reduced_motion') === 'true';
+    const historyWindow = parseInt(localStorage.getItem('ds_history_window') || '50', 10);
     document.documentElement.toggleAttribute('data-reduced-motion', reducedMotion);
 
     // Behavior defaults
@@ -282,6 +285,8 @@ function loadSettings() {
     if (compactEl) compactEl.checked = compact;
     if (tsEl) tsEl.checked = timestamps;
     if (rmEl) rmEl.checked = reducedMotion;
+    const hwEl = document.getElementById('appearance-history-window');
+    if (hwEl) hwEl.value = String(historyWindow);
     if (asEl) asEl.checked = autoScroll;
     if (ddEl) ddEl.checked = detailsDefault;
     
