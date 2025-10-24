@@ -30,9 +30,9 @@
   <div style="flex: 1; min-width: 300px; border-left: 4px solid #FF6B6B; padding: 10px; background: #FFF5F5; margin: 5px 0;">
     <h3 style="color: #FF6B6B; margin-top: 0;">Production Ready</h3>
     <ul>
-      <li><b>Comprehensive logging</b></li>
-      <li><b>Request retry logic</b></li>
-      <li><b>Auto-scaling handling</b></li>
+      <li><b>Comprehensive logging</b> (✓)</li>
+      <li><b>Request retry logic</b> (✓)</li>
+      <li><b>Auto-scaling handling</b> (X via infrastructure)</li>
     </ul>
   </div>
 </div>
@@ -137,13 +137,13 @@
   <div style="flex: 1; min-width: 300px;">
     <h3 style="color: #FF6B6B; border-bottom: 2px solid #FF6B6B; padding-bottom: 5px;">Security</h3>
     <ul>
-      <li>Environment-based configuration for secure API key storage</li>
-      <li>Input validation and sanitization to prevent injection attacks</li>
-      <li>Secure file handling for uploads with size and type validation</li>
-      <li>HTTPS-only communications with the DeepSeek API</li>
-      <li>Rate limiting to prevent abuse</li>
-      <li>Content validation to filter potentially harmful outputs</li>
-      <li>Automatic session expiration for inactive users</li>
+      <li>Environment-based configuration for secure API key storage (✓)</li>
+      <li>Input validation and sanitization to prevent injection attacks (partial ✓)</li>
+      <li>Secure file handling for uploads with size and type validation (partial ✓)</li>
+      <li>HTTPS-only communications with the DeepSeek API (X — configure at deployment/proxy)</li>
+      <li>Rate limiting to prevent abuse (X overall; Weather tool has internal limiter ✓)</li>
+      <li>Content validation to filter potentially harmful outputs (X)</li>
+      <li>Automatic session expiration for inactive users (X)</li>
     </ul>
   </div>
 </div>

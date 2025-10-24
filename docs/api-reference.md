@@ -361,213 +361,59 @@ except DeepSeekAuthError as e:
 
 ## REST API Endpoints
 
-The DeepSeek Wrapper provides a FastAPI-based REST API with the following endpoints:
+This section documents the actual FastAPI endpoints exposed by the app and marks planned endpoints for future releases.
 
-### Chat Endpoints
+### Status legend
+- ✓ Implemented
+- X Planned (not implemented yet)
 
-#### `POST /api/chat`
+### Endpoint summary
 
-Create a new chat message and get a response from the DeepSeek AI.
+| Status | Method | Path |
+|--------|--------|------|
+| ✓ | GET | `/` |
+| ✓ | POST | `/chat` |
+| ✓ | POST | `/completions` |
+| ✓ | POST | `/reset` |
+| ✓ | POST | `/upload` |
+| ✓ | GET | `/chat/stream` |
+| ✓ | POST | `/save_api_keys` |
+| ✓ | POST | `/api/save-api-keys` |
+| ✓ | GET | `/api/key-status` |
+| ✓ | GET | `/api/tool-status` |
+| ✓ | POST | `/api/clear-caches` |
+| ✓ | GET | `/api/test-weather` |
+| ✓ | GET | `/test-weather` |
+| ✓ | GET | `/api/models` |
+| ✓ | POST | `/api/set-model` |
+| ✓ | GET | `/api/config` |
+| ✓ | POST | `/api/set-config` |
+| X | POST | `/api/chat` |
+| X | POST | `/api/generate` |
+| X | GET | `/api/generate/stream` |
+| X | POST | `/api/embeddings` |
+| X | GET/POST/DELETE | `/api/conversations*` |
+| X | GET/POST/DELETE | `/api/webhooks*` |
 
-**Request Body:**
+### Streaming chat (✓ GET `/chat/stream`)
+
+Server-Sent Events stream of assistant output. Message types:
+
 ```json
-{
-  "message": "Your message here",
-  "conversation_id": "optional-conversation-id",
-  "system_prompt": "Optional system prompt to guide the AI's behavior"
-}
+{ "type": "user_msg_received", "message": {"role":"user","content":"..."} }
+{ "type": "assistant_msg_start", "message": {"role":"assistant","content":""} }
+{ "type": "content_chunk", "chunk": "partial text" }
+{ "type": "replace_content", "content": "final processed text" }
+{ "type": "complete", "message": {"role":"assistant","content":"..."} }
+{ "type": "error", "error": "message" }
 ```
 
-**Response:**
-```json
-{
-  "id": "response-id",
-  "content": "AI response content",
-  "conversation_id": "conversation-id"
-}
-```
+Query params:
+- `user_message`: required
+- `system_prompt`: optional
 
-#### `GET /api/chat/stream`
+### Chat (✓ POST `/chat`)
+Form field `user_message` with current session history; returns the rendered HTML page.
 
-Stream a chat response using Server-Sent Events (SSE).
-
-**Query Parameters:**
-- `message` (string): The user's message
-- `conversation_id` (string, optional): Conversation identifier
-- `system_prompt` (string, optional): System prompt
-
-**Response:**
-Server-sent events with the following data format:
-```json
-{
-  "id": "chunk-id",
-  "content": "Partial content chunk",
-  "is_complete": false
-}
-```
-
-Final chunk will have `is_complete` set to `true`.
-
-### Text Generation Endpoints
-
-#### `POST /api/generate`
-
-Generate text based on a prompt without conversation context.
-
-**Request Body:**
-```json
-{
-  "prompt": "Your prompt here",
-  "max_tokens": 100,
-  "temperature": 0.7
-}
-```
-
-**Response:**
-```json
-{
-  "id": "generation-id",
-  "text": "Generated text content"
-}
-```
-
-#### `GET /api/generate/stream`
-
-Stream a text generation response using Server-Sent Events (SSE).
-
-**Query Parameters:**
-- `prompt` (string): The generation prompt
-- `max_tokens` (integer, optional): Maximum tokens to generate
-- `temperature` (float, optional): Temperature for generation
-
-**Response:**
-Server-sent events with the same format as the chat stream endpoint.
-
-### Embedding Endpoints
-
-#### `POST /api/embeddings`
-
-Generate embeddings for input text.
-
-**Request Body:**
-```json
-{
-  "input": "Text to generate embeddings for"
-}
-```
-
-**Response:**
-```json
-{
-  "embedding": [0.123, 0.456, ...], // Vector of floating-point values
-  "dimensions": 1536 // Number of dimensions in the embedding vector
-}
-```
-
-### Conversation Endpoints
-
-#### `GET /api/conversations`
-
-Get a list of all conversations.
-
-**Response:**
-```json
-[
-  {
-    "id": "conversation-id",
-    "title": "Conversation title",
-    "created_at": "2023-06-15T14:30:00Z",
-    "updated_at": "2023-06-15T14:35:00Z"
-  }
-]
-```
-
-#### `GET /api/conversations/{conversation_id}`
-
-Get details and messages for a specific conversation.
-
-**Response:**
-```json
-{
-  "id": "conversation-id",
-  "title": "Conversation title",
-  "created_at": "2023-06-15T14:30:00Z",
-  "updated_at": "2023-06-15T14:35:00Z",
-  "messages": [
-    {
-      "id": "message-id",
-      "role": "user",
-      "content": "User message",
-      "created_at": "2023-06-15T14:30:00Z"
-    },
-    {
-      "id": "response-id",
-      "role": "assistant",
-      "content": "AI response",
-      "created_at": "2023-06-15T14:31:00Z"
-    }
-  ]
-}
-```
-
-#### `DELETE /api/conversations/{conversation_id}`
-
-Delete a specific conversation.
-
-**Response:** Status 204 No Content
-
-### Document Endpoints
-
-#### `POST /api/documents/upload`
-
-Upload a document for processing.
-
-**Request:** Multipart form data with a `file` field containing the document.
-
-**Response:**
-```json
-{
-  "id": "document-id",
-  "filename": "document.pdf",
-  "content": "Extracted text from the document",
-  "content_type": "application/pdf",
-  "size": 1024
-}
-```
-
-### Webhook Endpoints
-
-#### `POST /api/webhooks/register`
-
-Register a webhook to receive notifications.
-
-**Request Body:**
-```json
-{
-  "url": "https://your-webhook-endpoint.com",
-  "events": ["completion.finished", "error"],
-  "description": "Optional description of this webhook"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "webhook-id",
-  "url": "https://your-webhook-endpoint.com",
-  "events": ["completion.finished", "error"],
-  "created_at": "2023-06-15T14:30:00Z"
-}
-```
-
-#### `GET /api/webhooks`
-
-List all registered webhooks.
-
-**Response:** Array of webhook objects.
-
-#### `DELETE /api/webhooks/{webhook_id}`
-
-Delete a registered webhook.
-
-**Response:** Status 204 No Content 
+### Completions (✓ POST `/completions`)
+Form field `prompt`; returns the rendered HTML page with result.

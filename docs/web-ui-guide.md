@@ -98,8 +98,8 @@ The document content is automatically analyzed and included in the context for t
 
 - Documents are processed on the server but are not permanently stored
 - Content is extracted and used only for the current session
-- File uploads are scanned for malware and sensitive content
-- Uploads expire after 24 hours or when the session ends
+- X Malware/sensitive content scanning (planned)
+- X Automatic expiry after 24 hours (planned)
 
 ## Customizing Your Experience
 
@@ -186,8 +186,8 @@ The DeepSeek Wrapper includes several AI tools that can be configured through th
 
 | Tool | Description | API Key Required |
 |------|-------------|------------------|
-| Web Search | Search the web for real-time information | Yes (WEBSEARCH_API_KEY) |
-| Weather | Get current weather and forecasts | Yes (WEATHER_API_KEY) |
+| Web Search | Search the web for real-time information | Yes (SEARCH_API_KEY) |
+| Weather | Get current weather and forecasts | Yes (OPENWEATHERMAP_API_KEY) |
 | Email | Compose and send emails | Yes (SMTP credentials) |
 | Calculator | Perform calculations | No |
 | Date & Time | Get current date and time information | No |

@@ -40,6 +40,9 @@ def load_config(config_file: Optional[str] = None) -> Dict[str, Any]:
     
     if os.getenv("DEEPSEEK_BASE_URL"):
         config["base_url"] = os.getenv("DEEPSEEK_BASE_URL")
+    elif os.getenv("DEEPSEEK_API_BASE_URL"):
+        # Back-compat for older env variable name
+        config["base_url"] = os.getenv("DEEPSEEK_API_BASE_URL")
     
     # Override with values from config file if it exists
     if os.path.exists(config_file):

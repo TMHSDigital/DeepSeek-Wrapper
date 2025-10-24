@@ -30,7 +30,13 @@ class DeepSeekConfig:
         
         # API key is sensitive, so we prioritize the argument, then env var, then config
         self.api_key = api_key or os.getenv("DEEPSEEK_API_KEY") or config.get("api_key")
-        self.base_url = base_url or os.getenv("DEEPSEEK_BASE_URL") or config.get("base_url")
+        # Support both DEEPSEEK_BASE_URL and legacy DEEPSEEK_API_BASE_URL
+        self.base_url = (
+            base_url
+            or os.getenv("DEEPSEEK_BASE_URL")
+            or os.getenv("DEEPSEEK_API_BASE_URL")
+            or config.get("base_url")
+        )
         self.timeout = timeout if timeout != 30.0 else config.get("timeout", 30.0)
         self.max_retries = max_retries if max_retries != 3 else config.get("max_retries", 3)
         

@@ -28,7 +28,7 @@
     <p><strong>1. Clone the repository or download the source code</strong></p>
     
     ```bash
-    git clone https://github.com/yourusername/DeepSeek-Wrapper.git
+    git clone https://github.com/TMHSDigital/DeepSeek-Wrapper.git
     cd DeepSeek-Wrapper
     ```
   </div>
@@ -64,12 +64,18 @@
   <div style="padding: 10px 15px;">
     <p><strong>4. Set up environment variables</strong></p>
     <ul>
-      <li>Copy the <code>.env.example</code> file to <code>.env</code></li>
+      <li>Copy the <code>.env.example</code> file to <code>.env</code> (if present), or create a new <code>.env</code> file</li>
       <li>Open the <code>.env</code> file and add your DeepSeek API key:</li>
     </ul>
     
     ```
     DEEPSEEK_API_KEY=your_api_key_here
+    ```
+    
+    Windows PowerShell quickstart to create <code>.env</code>:
+    
+    ```powershell
+    "DEEPSEEK_API_KEY=sk-your-key" | Out-File -FilePath .env -Encoding ascii
     ```
   </div>
 </div>
@@ -80,11 +86,8 @@
   <p style="margin-top: 0;"><strong>To start the web interface, run:</strong></p>
   
   ```bash
-  # On Windows
-  python -m src.deepseek_wrapper.main
-
-  # On macOS/Linux
-  python -m src.deepseek_wrapper.main
+  # On Windows, macOS, or Linux
+  uvicorn src.deepseek_wrapper.web:app --reload
   ```
   
   <p>The application will start and be accessible at <a href="http://localhost:8000">http://localhost:8000</a> by default.</p>

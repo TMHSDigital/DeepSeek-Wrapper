@@ -34,7 +34,7 @@ No, the wrapper needs to connect to the DeepSeek API servers, which requires an 
 ## Usage
 
 ### How do I start a new conversation?
-In the web UI, click the "New Chat" button in the sidebar. In the API, make a request without specifying a conversation ID to start a new one.
+In the web UI, click the "New Chat" button in the sidebar. Programmatically, post to `/chat` with a `user_message` form field to begin a session-backed exchange.
 
 ### Can I upload files to provide context?
 Yes, you can upload PDF, DOCX, and TXT files using the file upload button next to the input field. The content will be processed and included in the context for your next message.
@@ -43,7 +43,7 @@ Yes, you can upload PDF, DOCX, and TXT files using the file upload button next t
 In the web UI, click the settings icon and enter your system prompt in the appropriate field. In the API, include the `system_prompt` parameter in your request.
 
 ### Can I export my conversations?
-Currently, there's no built-in export feature, but this is planned for a future release.
+Currently, there's no built-in export feature. X Planned for a future release.
 
 ## Troubleshooting
 
@@ -76,10 +76,10 @@ See the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on how to contrib
 Yes, the frontend is built with HTML, CSS, and JavaScript. You can modify or extend it by editing the templates and static files.
 
 ### How do I add support for a new file format?
-To add support for a new file format, you'll need to implement a parser in the `document_processor.py` file and register it in the file type handlers.
+Add support in `src/deepseek_wrapper/web.py` within `extract_text_from_file` to parse the new type, and extend upload handling if needed.
 
 ### Is there an API for programmatic access?
-Yes, you can use the Python client API or make HTTP requests directly to the REST API endpoints. See the [API Reference](api-reference.md) for details.
+Yes. Use the Python client API, or the implemented FastAPI endpoints documented in the [API Reference](api-reference.md). Some broader REST endpoints are X planned.
 
 ## Pricing & Limits
 

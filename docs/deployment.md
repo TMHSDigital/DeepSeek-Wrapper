@@ -9,7 +9,7 @@ This guide covers different options for deploying the DeepSeek Wrapper applicati
 For local development, you can run the application with:
 
 ```bash
-python -m src.deepseek_wrapper.main
+uvicorn src.deepseek_wrapper.web:app --reload
 ```
 
 This will start the application with auto-reload enabled for development purposes.
@@ -19,7 +19,7 @@ This will start the application with auto-reload enabled for development purpose
 For a more production-ready local deployment:
 
 ```bash
-uvicorn src.deepseek_wrapper.main:app --host 0.0.0.0 --port 8000 --workers 4
+uvicorn src.deepseek_wrapper.web:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
 This uses the Uvicorn ASGI server with multiple worker processes for better performance.
@@ -126,11 +126,17 @@ The following environment variables can be configured for deployment:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `DEEPSEEK_API_KEY` | Your DeepSeek API key (required) | None |
-| `HOST` | Host to bind the server to | 0.0.0.0 |
-| `PORT` | Port to run the server on | 8000 |
-| `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | INFO |
-| `UPLOAD_DIR` | Directory for file uploads | ./uploads |
-| `MAX_UPLOAD_SIZE` | Maximum file upload size in MB | 10 |
+| `DEEPSEEK_BASE_URL` | API base URL | https://api.deepseek.com/v1 |
+| `DEEPSEEK_DEFAULT_MODEL` | Default model name | deepseek-chat |
+| `SESSION_SECRET_KEY` | Secret for session middleware | supersecret |
+| `SEARCH_API_KEY` | API key for Web Search tool |  |
+| `OPENWEATHERMAP_API_KEY` | API key for Weather tool |  |
+| `EMAIL_SMTP_SERVER` | SMTP server for Email tool | smtp.gmail.com |
+| `EMAIL_SMTP_PORT` | SMTP port | 587 |
+| `EMAIL_USERNAME` | SMTP username |  |
+| `EMAIL_PASSWORD` | SMTP password |  |
+| `EMAIL_TEMPLATE_DIR` | Email templates directory | ./email_templates |
+| `WOLFRAM_ALPHA_APP_ID` | App ID for Wolfram Alpha tool |  |
 
 ## Scaling Considerations
 

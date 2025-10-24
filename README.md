@@ -119,6 +119,11 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 - Error banner for API issues
 - **Tool configuration in settings panel with API key management**
 
+Note on models:
+- Default documented model: `deepseek-chat`
+- You can change the runtime model via the REST API: `POST /api/set-model` (✓)
+- The UI Model tab is informational for now (X) and won’t switch the backend model yet
+
 For a comprehensive guide to using the web interface, see the [Web UI Guide](docs/web-ui-guide.md).
 
 ## Installation
