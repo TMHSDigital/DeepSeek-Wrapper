@@ -15,6 +15,7 @@ The interface consists of several key components:
 - **Settings Button**: Access to customize your experience
 - **File Upload**: Button to upload documents for context
 - **Conversation History**: List of your previous conversations
+ - **Command Palette**: Press Ctrl+K to access quick actions
 
 ## Starting a New Chat
 
@@ -35,11 +36,22 @@ The chat interface supports full Markdown formatting, including:
 
 ### Code Handling
 
-Code snippets are displayed with syntax highlighting for better readability. You can:
+Code snippets use lazy-loaded syntax highlighting for faster initial loads. You can:
 - Copy code blocks with a single click on the copy button
 - See the language identified in the top-right of each code block
+### Date Separators and Virtualized History
 
-### Streaming UX: Safe Thinking Indicator (New)
+Long conversations are easier to scan with automatic date separators. For performance, the UI shows only the most recent portion of the conversation by default. Use the “Load older messages” button to reveal earlier messages. You can configure how many messages remain visible (30/50/100) in Settings → Appearance.
+
+### Command Palette
+
+Press Ctrl+K to open the command palette for quick actions such as toggling theme, opening Settings, exporting, or focusing the input.
+
+### Accessibility and Motion Preferences
+
+Under Settings → Appearance you can enable Reduced Motion to disable animations, and toggle timestamps or compact density. The “Thinking…” details panel disables animations when expanded.
+
+### Streaming UX: Safe Thinking Indicator
 
 To reduce flashing and improve readability while the model is generating a response, the UI now uses a non-flashing "Thinking…" indicator:
 

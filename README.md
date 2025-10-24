@@ -115,10 +115,17 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 - Async backend for fast, non-blocking responses
 - Reset conversation button
 - Timestamps, avatars, and chat bubbles
-- **Markdown rendering in assistant responses**
+- **Markdown rendering with syntax highlighting (lazy-loaded)**
 - Loading indicator while waiting for LLM
-- **Non‑flashing "Thinking…" indicator with progress bar and optional expandable live details (accessibility-friendly)**
+- **Non-flashing "Thinking…" indicator with progress bar and optional expandable live details**
 - Error banner for API issues
+- **Command palette (Ctrl+K) for quick actions**
+- **Appearance settings**: compact density, show timestamps, reduced motion
+- **Behavior settings**: auto-scroll during streaming, expand details by default
+- **File uploads with chips, image preview, and progress**
+- **Date separators for long conversations**
+- **Virtualized chat history with configurable window size**
+- **Accessible toasts for feedback (copy, errors, cache clears)**
 - **Tool configuration in settings panel with API key management**
 
 Note on models:
